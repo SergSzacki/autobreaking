@@ -3,7 +3,6 @@ import type { Car, CarDraft } from '../types/car'
 
 export const listCars = async () => {
   const response = await api.get('/cars')
-  // Support older backend responses that return { cars: [...] } or directly an array
   if (response.data && Array.isArray(response.data)) return response.data as Car[]
   if (response.data && Array.isArray(response.data.cars)) return response.data.cars as Car[]
   return [] as Car[]
@@ -11,6 +10,11 @@ export const listCars = async () => {
 
 export const createCar = async (payload: CarDraft) => {
   const response = await api.post('/cars', payload)
+  return response.data as Car
+}
+
+export const updateCar = async (id: number, payload: Partial<CarDraft>) => {
+  const response = await api.patch(`/cars/${id}`, payload)
   return response.data as Car
 }
 
