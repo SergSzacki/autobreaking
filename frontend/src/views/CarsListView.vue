@@ -3,11 +3,11 @@
     <h2>Cars</h2>
 
     <div style="margin-bottom: 12px;">
-      <button @click="showForm = !showForm">{{ showForm ? 'Hide' : 'Add car' }}</button>
+      <button @click="openCreate">{{ showForm ? 'Hide' : 'Add car' }}</button>
     </div>
 
     <div v-if="showForm" style="margin-bottom: 16px;">
-      <CarForm ref="carFormRef" @saved="onSaved" />
+      <CarForm :initial="editingData" ref="carFormRef" @saved="onSaved" @cancel="onCancel" />
     </div>
 
     <button @click="fetchCars">Refresh</button>
@@ -35,6 +35,7 @@
           <td>{{ car.mileage }}</td>
           <td>{{ car.status }}</td>
           <td>
+            <button @click="startEdit(car)">Edit</button>
             <button @click="confirmDelete(car.id)">Delete</button>
           </td>
         </tr>
@@ -48,13 +49,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import CarForm from '@/components/CarForm.vue'
-import type { CarDraft } from '@/types/car'
-import { listCars, createCar, deleteCar } from '@/api/cars'
+import type { CarDraft, Car } from '@/types/car'
+import { listCars, createCar, updateCar, deleteCar } from '@/api/cars'
 
 const cars = ref<any[]>([])
 const loading = ref(false)
 const showForm = ref(false)
 const carFormRef = ref(null as any)
+const editingData = ref<Partial<Car> | undefined>(undefined)
 
 async function fetchCars() {
   loading.value = true
@@ -68,18 +70,43 @@ async function fetchCars() {
   }
 }
 
-async function onSaved(payload: CarDraft) {
+function openCreate() {
+  editingData.value = undefined
+  showForm.value = !showForm.value
+  // reset form if hiding and showing again
+  if (showForm.value && carFormRef.value && typeof carFormRef.value.reset === 'function') {
+    carFormRef.value.reset()
+  }
+}
+
+function startEdit(car: Car) {
+  editingData.value = car
+  showForm.value = true
+  // CarForm watches initial prop and will fill fields
+}
+
+async function onSaved(payload: { id?: number; data: CarDraft }) {
   try {
-    await createCar(payload)
+    if (payload.id) {
+      await updateCar(payload.id, payload.data)
+    } else {
+      await createCar(payload.data)
+    }
     // reset form
     if (carFormRef.value && typeof carFormRef.value.reset === 'function') {
       carFormRef.value.reset()
     }
     showForm.value = false
+    editingData.value = undefined
     await fetchCars()
   } catch (err) {
     console.error(err)
   }
+}
+
+function onCancel() {
+  showForm.value = false
+  editingData.value = undefined
 }
 
 async function confirmDelete(id: number) {

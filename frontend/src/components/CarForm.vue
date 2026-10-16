@@ -32,48 +32,79 @@
         <option value="sold">sold</option>
       </select>
     </div>
-    <button type="submit">Save car</button>
+    <div style="margin-top:8px;">
+      <button type="submit">Save</button>
+      <button type="button" @click="onCancel">Cancel</button>
+    </div>
   </form>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
-import type { CarDraft } from '@/types/car'
+import { reactive, watch, toRaw } from 'vue'
+import type { CarDraft, Car } from '@/types/car'
 
-const emit = defineEmits<{ (e: 'saved'): void }>()
+const props = defineProps<{ initial?: Partial<Car> }>()
+const emit = defineEmits<{ (e: 'saved', payload: { id?: number; data: CarDraft }): void; (e: 'cancel'): void }>()
 
-const form = reactive<CarDraft>({
+const defaultForm = (): CarDraft => ({
   make: '',
   model: '',
   year: new Date().getFullYear(),
-  vin: '',
+  vin: null,
   mileage: 0,
-  color: '',
+  color: null,
   status: 'available',
 })
 
+const form = reactive<CarDraft>(defaultForm())
+
+// initialize with props.initial when provided
+const resetForm = () => {
+  const init = props.initial
+  if (init) {
+    form.make = (init.make as string) || ''
+    form.model = (init.model as string) || ''
+    form.year = (init.year as number) || new Date().getFullYear()
+    form.vin = init.vin ?? null
+    form.mileage = init.mileage ?? 0
+    form.color = init.color ?? null
+    form.status = init.status ?? 'available'
+  } else {
+    const d = defaultForm()
+    form.make = d.make
+    form.model = d.model
+    form.year = d.year
+    form.vin = d.vin
+    form.mileage = d.mileage
+    form.color = d.color
+    form.status = d.status
+  }
+}
+
+watch(() => props.initial, resetForm, { immediate: true })
+
 const submitForm = async () => {
   const payload: CarDraft = {
-    make: form.make.trim(),
-    model: form.model.trim(),
+    make: String(form.make).trim(),
+    model: String(form.model).trim(),
     year: Number(form.year),
-    vin: form.vin?.trim() || null,
+    vin: form.vin ? String(form.vin).trim() : null,
     mileage: Number(form.mileage || 0),
-    color: form.color?.trim() || null,
+    color: form.color ? String(form.color).trim() : null,
     status: form.status || 'available',
   }
 
-  emit('saved', payload)
+  // include id if editing via props.initial
+  const id = (props.initial && (props.initial as any).id) as number | undefined
+  emit('saved', { id, data: payload })
+}
+
+const onCancel = () => {
+  emit('cancel')
 }
 
 const reset = () => {
-  form.make = ''
-  form.model = ''
-  form.year = new Date().getFullYear()
-  form.vin = ''
-  form.mileage = 0
-  form.color = ''
-  form.status = 'available'
+  resetForm()
 }
 
 defineExpose({ reset })
