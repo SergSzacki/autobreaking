@@ -3,7 +3,10 @@ import type { Car, CarDraft } from '../types/car'
 
 export const listCars = async () => {
   const response = await api.get('/cars')
-  return response.data.cars as Car[]
+  // Support older backend responses that return { cars: [...] } or directly an array
+  if (response.data && Array.isArray(response.data)) return response.data as Car[]
+  if (response.data && Array.isArray(response.data.cars)) return response.data.cars as Car[]
+  return [] as Car[]
 }
 
 export const createCar = async (payload: CarDraft) => {

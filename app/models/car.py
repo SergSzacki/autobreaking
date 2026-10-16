@@ -1,40 +1,30 @@
-from sqlalchemy import Numeric
-from sqlalchemy import String
+from typing import Optional
 
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
+from sqlmodel import Field, SQLModel
 
-from app.models.base import Base
+class CarBase(SQLModel):
+    make: str
+    model: str
+    year: int
+    vin: Optional[str] = None
+    mileage: Optional[int] = 0
+    color: Optional[str] = None
+    status: Optional[str] = "available"
 
+class Car(CarBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
 
-class Car(Base):
-    __tablename__ = "cars"
+class CarCreate(CarBase):
+    pass
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True
-    )
+class CarRead(CarBase):
+    id: int
 
-    vin: Mapped[str | None] = mapped_column(
-        String(17),
-        nullable=True
-    )
-
-    brand: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False
-    )
-
-    model: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False
-    )
-
-    purchase_price: Mapped[float] = mapped_column(
-        Numeric(12, 2),
-        default=0
-    )
-
-    status: Mapped[str] = mapped_column(
-        String(50),
-        default="ACTIVE"
-    )
+class CarUpdate(SQLModel):
+    make: Optional[str] = None
+    model: Optional[str] = None
+    year: Optional[int] = None
+    vin: Optional[str] = None
+    mileage: Optional[int] = None
+    color: Optional[str] = None
+    status: Optional[str] = None
