@@ -16,19 +16,38 @@
     </div>
 
     <div class="toolbar">
-      <button class="secondary" @click="fetchCars">Refresh</button>
-      <span class="counter">{{ cars.length }} cars</span>
+      <div class="filters">
+        <input
+          v-model="searchTerm"
+          class="search-input"
+          type="text"
+          placeholder="Search by make, model or VIN"
+        />
+
+        <select v-model="statusFilter" class="filter-select">
+          <option value="all">All statuses</option>
+          <option value="available">available</option>
+          <option value="maintenance">maintenance</option>
+          <option value="sold">sold</option>
+        </select>
+      </div>
+
+      <div class="toolbar-right">
+        <button class="secondary" @click="fetchCars">Refresh</button>
+        <span class="counter">{{ filteredCars.length }} cars</span>
+      </div>
     </div>
 
     <div class="list-wrap">
-      <div v-for="car in cars" :key="car.id" class="car-card">
+      <div v-for="car in filteredCars" :key="car.id" class="car-card">
         <div class="car-header">
           <div>
             <div class="car-name">{{ car.make }} {{ car.model }}</div>
-            <div class="meta">{{ car.year }} • {{ car.status || 'available' }}</div>
+            <div class="meta">{{ car.year }} • <span :class="['status-badge', statusClass(car.status)]">{{ car.status || 'available' }}</span></div>
           </div>
 
           <div class="actions">
+            <button class="ghost" @click="openCarDetails(car.id)">Details</button>
             <button class="ghost" @click="startEditCar(car)">Edit</button>
             <button class="ghost danger" @click="confirmDeleteCar(car.id)">Delete</button>
             <button class="ghost" @click="toggleParts(car.id)">
@@ -92,7 +111,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import CarForm from '@/components/CarForm.vue'
 import PartForm from '@/components/PartForm.vue'
 import type { CarDraft, Car } from '@/types/car'
@@ -100,8 +120,12 @@ import type { Part, PartDraft } from '@/types/part'
 import { listCars, createCar, updateCar, deleteCar } from '@/api/cars'
 import { listPartsByCar, createPart, updatePart, deletePart } from '@/api/parts'
 
+const router = useRouter()
+
 const cars = ref<any[]>([])
 const loading = ref(false)
+const searchTerm = ref('')
+const statusFilter = ref('all')
 
 const showCarForm = ref(false)
 const editingCar = ref<Partial<Car> | undefined>(undefined)
@@ -111,6 +135,28 @@ const expandedCarId = ref<number | null>(null)
 const partsByCar = ref<Record<number, Part[]>>({})
 const partFormCarId = ref<number | null>(null)
 const editingPart = ref<Partial<Part> | undefined>(undefined)
+
+const filteredCars = computed(() => {
+  const q = searchTerm.value.trim().toLowerCase()
+
+  return cars.value.filter((car) => {
+    const matchesStatus = statusFilter.value === 'all' || (car.status || 'available') === statusFilter.value
+    if (!matchesStatus) return false
+
+    if (!q) return true
+
+    const haystack = `${car.make || ''} ${car.model || ''} ${car.vin || ''}`.toLowerCase()
+    return haystack.includes(q)
+  })
+})
+
+function statusClass(status?: string | null) {
+  switch (status) {
+    case 'maintenance': return 'status-maintenance'
+    case 'sold': return 'status-sold'
+    default: return 'status-available'
+  }
+}
 
 async function fetchCars() {
   loading.value = true
@@ -253,6 +299,10 @@ async function deletePartEntry(carId: number, partId?: number) {
   }
 }
 
+function openCarDetails(carId: number) {
+  router.push(`/cars/${carId}`)
+}
+
 fetchCars()
 </script>
 
@@ -305,6 +355,34 @@ h2 {
 
 .toolbar {
   margin: 18px 0;
+  flex-wrap: wrap;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input,
+.filter-select {
+  border: 1px solid #dfe7f3;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 42px;
+  background: white;
+  color: #1f2937;
+}
+
+.search-input {
+  min-width: 280px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .counter {
@@ -323,15 +401,42 @@ h2 {
 }
 
 .car-name {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #111827;
 }
 
 .meta {
-  margin-top: 4px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: #64748b;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.status-available {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.status-maintenance {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-sold {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .actions {
@@ -465,5 +570,23 @@ button.small {
 .loading {
   margin-top: 18px;
   color: #475569;
+}
+
+@media (max-width: 768px) {
+  .car-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .topbar,
+  .toolbar,
+  .car-header,
+  .parts-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-input {
+    min-width: 100%;
+  }
 }
 </style>
