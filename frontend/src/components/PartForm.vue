@@ -1,103 +1,448 @@
 <template>
-  <form @submit.prevent="submitForm">
-    <div>
-      <label>Name</label>
-      <input v-model="form.name" required />
-    </div>
-    <div>
-      <label>Category</label>
-      <input v-model="form.category" placeholder="engine, brakes, body..." />
-    </div>
-    <div>
-      <label>SKU</label>
-      <input v-model="form.sku" placeholder="OF-2042" />
-    </div>
-    <div>
-      <label>Quantity</label>
-      <input v-model.number="form.quantity" type="number" min="0" />
-    </div>
-    <div>
-      <label>Price</label>
-      <input v-model.number="form.price" type="number" min="0" step="0.01" />
-    </div>
-    <div>
-      <label>Description</label>
-      <textarea v-model="form.description" rows="3" />
+  <div class="cars-shell">
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">Fleet overview</div>
+        <h2>Cars</h2>
+      </div>
+      <button class="primary" @click="openCreate">{{ showForm ? 'Hide form' : 'Add car' }}</button>
     </div>
 
-    <div style="margin-top:8px;">
-      <button type="submit">Save part</button>
-      <button type="button" @click="onCancel">Cancel</button>
+    <div v-if="showForm" class="panel form-panel">
+      <CarForm :initial="editingData" ref="carFormRef" @saved="onSaved" @cancel="onCancel" />
     </div>
-  </form>
+
+    <div class="toolbar">
+      <button class="secondary" @click="fetchCars">Refresh</button>
+      <span class="counter">{{ cars.length }} cars</span>
+    </div>
+
+    <div class="list-wrap">
+      <div v-for="car in cars" :key="car.id" class="car-card">
+        <div class="car-header">
+          <div>
+            <div class="car-name">{{ car.make }} {{ car.model }}</div>
+            <div class="meta">{{ car.year }} • {{ car.status || 'available' }}</div>
+          </div>
+          <div class="actions">
+            <button class="ghost" @click="startEdit(car)">Edit</button>
+            <button class="ghost danger" @click="confirmDelete(car.id)">Delete</button>
+            <button class="ghost" @click="toggleParts(car.id)">
+              {{ expandedCarId === car.id ? 'Hide parts' : `Parts (${partsByCar[car.id]?.length || 0})` }}
+            </button>
+          </div>
+        </div>
+
+        <div class="car-grid">
+          <div><span>ID</span><strong>#{{ car.id }}</strong></div>
+          <div><span>VIN</span><strong>{{ car.vin || '-' }}</strong></div>
+          <div><span>Mileage</span><strong>{{ car.mileage ?? 0 }}</strong></div>
+          <div><span>Color</span><strong>{{ car.color || '-' }}</strong></div>
+        </div>
+
+        <div v-if="expandedCarId === car.id" class="parts-panel">
+          <div class="parts-header">
+            <strong>Parts for {{ car.make }} {{ car.model }}</strong>
+            <button class="small primary" @click="showPartForm(car.id)">Add part</button>
+          </div>
+
+          <div v-if="partFormCarId === car.id" class="part-form-wrap">
+            <PartForm :initial="editingPart" :car-id="car.id" @saved="handlePartSaved" @cancel="cancelPartForm" />
+          </div>
+
+          <table class="parts-table" v-if="(partsByCar[car.id] || []).length">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>SKU</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Description</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="part in partsByCar[car.id] || []" :key="part.id">
+                <td>{{ part.name }}</td>
+                <td>{{ part.category || '-' }}</td>
+                <td>{{ part.sku || '-' }}</td>
+                <td>{{ part.quantity ?? 0 }}</td>
+                <td>{{ part.price ?? 0 }}</td>
+                <td>{{ part.description || '-' }}</td>
+                <td class="cell-actions">
+                  <button class="small ghost" @click="editPart(car.id, part)">Edit</button>
+                  <button class="small ghost danger" @click="deletePartEntry(car.id, part.id)">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div v-else class="empty-state">No parts added for this car yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="loading" class="loading">Loading...</div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { ref } from 'vue'
+import CarForm from '@/components/CarForm.vue'
+import PartForm from '@/components/PartForm.vue'
+import type { CarDraft, Car } from '@/types/car'
 import type { Part, PartDraft } from '@/types/part'
+import { listCars, createCar, updateCar, deleteCar } from '@/api/cars'
+import { listPartsByCar, createPart, updatePart, deletePart } from '@/api/parts'
 
-const props = defineProps<{ initial?: Partial<Part>; carId?: number | null }>()
-const emit = defineEmits<{ (e: 'saved', payload: { id?: number; data: PartDraft }): void; (e: 'cancel'): void }>()
+const cars = ref<any[]>([])
+const loading = ref(false)
+const showForm = ref(false)
+const carFormRef = ref(null as any)
+const editingData = ref<Partial<Car> | undefined>(undefined)
 
-const defaultForm = (): PartDraft => ({
-  name: '',
-  category: '',
-  sku: '',
-  quantity: 0,
-  price: 0,
-  description: '',
-  car_id: props.carId ?? null,
-})
+const expandedCarId = ref<number | null>(null)
+const partsByCar = ref<Record<number, Part[]>>({})
+const partFormCarId = ref<number | null>(null)
+const editingPart = ref<Partial<Part> | undefined>(undefined)
 
-const form = reactive<PartDraft>(defaultForm())
-
-const resetForm = () => {
-  const init = props.initial
-  if (init) {
-    form.name = init.name ?? ''
-    form.category = init.category ?? ''
-    form.sku = init.sku ?? ''
-    form.quantity = init.quantity ?? 0
-    form.price = init.price ?? 0
-    form.description = init.description ?? ''
-    form.car_id = props.carId ?? init.car_id ?? null
-  } else {
-    const d = defaultForm()
-    form.name = d.name
-    form.category = d.category
-    form.sku = d.sku
-    form.quantity = d.quantity
-    form.price = d.price
-    form.description = d.description
-    form.car_id = d.car_id
+async function fetchCars() {
+  loading.value = true
+  try {
+    const data = await listCars()
+    cars.value = data || []
+    for (const car of cars.value) {
+      if (car.id) await fetchPartsForCar(car.id)
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loading.value = false
   }
 }
 
-watch(() => props.initial, resetForm, { immediate: true })
-watch(() => props.carId, resetForm)
-
-const submitForm = () => {
-  const payload: PartDraft = {
-    name: String(form.name).trim(),
-    category: form.category ? String(form.category).trim() : null,
-    sku: form.sku ? String(form.sku).trim() : null,
-    quantity: Number(form.quantity || 0),
-    price: Number(form.price || 0),
-    description: form.description ? String(form.description).trim() : null,
-    car_id: props.carId ?? form.car_id ?? null,
+async function fetchPartsForCar(carId: number) {
+  try {
+    const data = await listPartsByCar(carId)
+    partsByCar.value[carId] = data || []
+  } catch (err) {
+    console.error(err)
   }
-
-  const id = (props.initial && (props.initial as any).id) as number | undefined
-  emit('saved', { id, data: payload })
 }
 
-const onCancel = () => {
-  emit('cancel')
+function openCreate() {
+  editingData.value = undefined
+  showForm.value = !showForm.value
+  if (showForm.value && carFormRef.value && typeof carFormRef.value.reset === 'function') {
+    carFormRef.value.reset()
+  }
 }
 
-const reset = () => {
-  resetForm()
+function toggleParts(carId: number) {
+  expandedCarId.value = expandedCarId.value === carId ? null : carId
+  if (expandedCarId.value !== null && !partsByCar.value[carId]) {
+    fetchPartsForCar(carId)
+  }
 }
 
-defineExpose({ reset })
+function showPartForm(carId: number) {
+  editingPart.value = undefined
+  partFormCarId.value = carId
+}
+
+function editPart(carId: number, part: Part) {
+  editingPart.value = part
+  partFormCarId.value = carId
+}
+
+function cancelPartForm() {
+  editingPart.value = undefined
+  partFormCarId.value = null
+}
+
+async function handlePartSaved(payload: { id?: number; data: PartDraft }) {
+  try {
+    if (!partFormCarId.value) return
+    if (payload.id) {
+      await updatePart(partFormCarId.value, payload.id, payload.data)
+    } else {
+      await createPart(partFormCarId.value, payload.data)
+    }
+    editingPart.value = undefined
+    partFormCarId.value = null
+    await fetchPartsForCar(partFormCarId.value)
+  } catch (err) {
+    console.error(err)
+    alert('Save part failed')
+  }
+}
+
+async function deletePartEntry(carId: number, partId?: number) {
+  if (!partId) return
+  if (!confirm('Delete this part?')) return
+  try {
+    await deletePart(carId, partId)
+    await fetchPartsForCar(carId)
+  } catch (err) {
+    console.error(err)
+    alert('Delete part failed')
+  }
+}
+
+function startEdit(car: Car) {
+  editingData.value = car
+  showForm.value = true
+}
+
+async function onSaved(payload: { id?: number; data: CarDraft }) {
+  try {
+    if (payload.id) {
+      await updateCar(payload.id, payload.data)
+    } else {
+      await createCar(payload.data)
+    }
+    if (carFormRef.value && typeof carFormRef.value.reset === 'function') {
+      carFormRef.value.reset()
+    }
+    showForm.value = false
+    editingData.value = undefined
+    await fetchCars()
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+function onCancel() {
+  showForm.value = false
+  editingData.value = undefined
+}
+
+async function confirmDelete(id: number) {
+  if (!confirm('Delete car #' + id + '?')) return
+  try {
+    await deleteCar(id)
+    await fetchCars()
+  } catch (err) {
+    console.error(err)
+    alert('Delete failed')
+  }
+}
+
+fetchCars()
 </script>
+
+<style scoped>
+.cars-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+  font-family: Inter, Arial, sans-serif;
+}
+
+.topbar,
+.toolbar,
+.car-header,
+.parts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.topbar {
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7c8aa5;
+}
+
+h2 {
+  margin: 4px 0 0;
+  font-size: 2rem;
+}
+
+.panel,
+.car-card {
+  background: #ffffff;
+  border: 1px solid #e7edf7;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+}
+
+.form-panel {
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.toolbar {
+  margin: 18px 0;
+}
+
+.counter {
+  color: #53627b;
+  font-size: 0.9rem;
+}
+
+.list-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.car-card {
+  padding: 18px;
+}
+
+.car-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.meta {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: #edf3ff;
+  color: #1e293b;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button.primary {
+  background: #2563eb;
+  color: white;
+}
+
+button.secondary {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+button.ghost {
+  background: #f8fafc;
+  border-color: #d8e1ef;
+}
+
+button.danger {
+  background: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
+}
+
+button.small {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.car-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.car-grid div {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.car-grid span {
+  color: #72819a;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.car-grid strong {
+  color: #0f172a;
+  font-size: 0.96rem;
+}
+
+.parts-panel {
+  margin-top: 18px;
+  background: #f8fafc;
+  border: 1px solid #e8eef8;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.parts-header {
+  margin-bottom: 12px;
+}
+
+.part-form-wrap {
+  background: white;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.parts-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.parts-table th,
+.parts-table td {
+  border: 1px solid #edf2f7;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.parts-table th {
+  background: #f3f6fb;
+  color: #475569;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cell-actions {
+  display: flex;
+  gap: 8px;
+  border: none;
+}
+
+.empty-state {
+  padding: 18px 10px 8px;
+  color: #64748b;
+}
+
+.loading {
+  margin-top: 18px;
+  color: #475569;
+}
+</style>
