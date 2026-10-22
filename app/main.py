@@ -1,21 +1,12 @@
 from typing import Optional, List, Dict
 
 from fastapi import FastAPI, HTTPException, Depends, Query
-from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
 from app.database import engine, init_db
 from app.models import Car, CarCreate, CarRead, CarUpdate, Part, PartCreate, PartRead, PartUpdate
 
 app = FastAPI(title="AutoBreaking - Cars API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.on_event("startup")
@@ -41,16 +32,10 @@ def list_cars(
         statement = statement.where(
             (Car.make.ilike(q_like)) | (Car.model.ilike(q_like)) | (Car.vin.ilike(q_like))
         )
-
-    cars = session.exec(statement).all()
-    total = len(cars)
+    total = session.exec(select([Car]).where(statement._whereclause)).all() if q else session.exec(select(Car)).count()
     skip = (page - 1) * per_page
-    page_items = cars[skip:skip + per_page]
-
-    return {
-        "cars": page_items,
-        "meta": {"page": page, "per_page": per_page, "total": total},
-    }
+    cars = session.exec(statement.offset(skip).limit(per_page)).all()
+    return {"cars": cars, "meta": {"page": page, "per_page": per_page, "total": len(cars) if q else total}}
 
 
 @app.get("/api/cars/{car_id}", response_model=CarRead)
