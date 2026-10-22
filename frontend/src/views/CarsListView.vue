@@ -30,6 +30,13 @@
           <option value="maintenance">maintenance</option>
           <option value="sold">sold</option>
         </select>
+
+        <select v-model="carsSort" class="filter-select">
+          <option value="make">Sort by: name</option>
+          <option value="year">Sort by: year</option>
+          <option value="status">Sort by: status</option>
+          <option value="id">Sort by: ID</option>
+        </select>
       </div>
 
       <div class="toolbar-right">
@@ -66,7 +73,15 @@
         <div v-if="expandedCarId === car.id" class="parts-panel">
           <div class="parts-header">
             <strong>Parts for {{ car.make }} {{ car.model }}</strong>
-            <button class="small primary" @click="showPartForm(car.id)">Add part</button>
+            <div class="parts-tools">
+              <select v-model="partsSort" class="filter-select small-select">
+                <option value="name">Sort by name</option>
+                <option value="quantity">Sort by qty</option>
+                <option value="price">Sort by price</option>
+                <option value="category">Sort by category</option>
+              </select>
+              <button class="small primary" @click="showPartForm(car.id)">Add part</button>
+            </div>
           </div>
 
           <div v-if="partFormCarId === car.id" class="part-form-wrap">
@@ -86,7 +101,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="part in partsByCar[car.id] || []" :key="part.id">
+              <tr v-for="part in sortParts(partsByCar[car.id] || [], partsSort)" :key="part.id">
                 <td>{{ part.name }}</td>
                 <td>{{ part.category || '-' }}</td>
                 <td>{{ part.sku || '-' }}</td>
@@ -126,6 +141,8 @@ const cars = ref<any[]>([])
 const loading = ref(false)
 const searchTerm = ref('')
 const statusFilter = ref('all')
+const carsSort = ref<'make' | 'year' | 'status' | 'id'>('make')
+const partsSort = ref<'name' | 'quantity' | 'price' | 'category'>('name')
 
 const showCarForm = ref(false)
 const editingCar = ref<Partial<Car> | undefined>(undefined)
@@ -139,7 +156,7 @@ const editingPart = ref<Partial<Part> | undefined>(undefined)
 const filteredCars = computed(() => {
   const q = searchTerm.value.trim().toLowerCase()
 
-  return cars.value.filter((car) => {
+  const result = cars.value.filter((car) => {
     const matchesStatus = statusFilter.value === 'all' || (car.status || 'available') === statusFilter.value
     if (!matchesStatus) return false
 
@@ -147,6 +164,20 @@ const filteredCars = computed(() => {
 
     const haystack = `${car.make || ''} ${car.model || ''} ${car.vin || ''}`.toLowerCase()
     return haystack.includes(q)
+  })
+
+  return [...result].sort((a, b) => {
+    switch (carsSort.value) {
+      case 'year':
+        return Number(b.year ?? 0) - Number(a.year ?? 0)
+      case 'status':
+        return String(a.status || 'available').localeCompare(String(b.status || 'available'))
+      case 'id':
+        return Number(a.id ?? 0) - Number(b.id ?? 0)
+      case 'make':
+      default:
+        return `${a.make || ''} ${a.model || ''}`.localeCompare(`${b.make || ''} ${b.model || ''}`)
+    }
   })
 })
 
@@ -156,6 +187,22 @@ function statusClass(status?: string | null) {
     case 'sold': return 'status-sold'
     default: return 'status-available'
   }
+}
+
+function sortParts(items: Part[], key: 'name' | 'quantity' | 'price' | 'category') {
+  return [...items].sort((a, b) => {
+    switch (key) {
+      case 'quantity':
+        return Number(b.quantity ?? 0) - Number(a.quantity ?? 0)
+      case 'price':
+        return Number(b.price ?? 0) - Number(a.price ?? 0)
+      case 'category':
+        return String(a.category || '').localeCompare(String(b.category || ''))
+      case 'name':
+      default:
+        return String(a.name || '').localeCompare(String(b.name || ''))
+    }
+  })
 }
 
 async function fetchCars() {
@@ -317,7 +364,8 @@ fetchCars()
 .topbar,
 .toolbar,
 .car-header,
-.parts-header {
+.parts-header,
+.parts-tools {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -377,6 +425,12 @@ h2 {
 
 .search-input {
   min-width: 280px;
+}
+
+.small-select {
+  min-width: 170px;
+  min-height: 36px;
+  padding: 6px 10px;
 }
 
 .toolbar-right {
@@ -580,7 +634,8 @@ button.small {
   .topbar,
   .toolbar,
   .car-header,
-  .parts-header {
+  .parts-header,
+  .parts-tools {
     flex-direction: column;
     align-items: flex-start;
   }

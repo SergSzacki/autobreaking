@@ -42,6 +42,15 @@
         <option value="low_stock">Low stock</option>
         <option value="out_of_stock">Out of stock</option>
       </select>
+
+      <select v-model="inventorySort" class="filter-select">
+        <option value="name">Sort by name</option>
+        <option value="quantity">Sort by quantity</option>
+        <option value="min_quantity">Sort by min qty</option>
+        <option value="price">Sort by price</option>
+        <option value="category">Sort by category</option>
+        <option value="status">Sort by status</option>
+      </select>
     </div>
 
     <div class="table-wrap">
@@ -146,11 +155,12 @@ const inventory = ref<InventoryItem[]>([
 
 const search = ref('')
 const statusFilter = ref<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all')
+const inventorySort = ref<'name' | 'quantity' | 'min_quantity' | 'price' | 'category' | 'status'>('name')
 
 const filteredInventory = computed(() => {
   const term = search.value.trim().toLowerCase()
 
-  return inventory.value.filter((item) => {
+  let result = inventory.value.filter((item) => {
     const status = getStockStatus(item.quantity, item.min_quantity)
     const matchesStatus = statusFilter.value === 'all' || status === statusFilter.value
     const matchesSearch =
@@ -160,6 +170,29 @@ const filteredInventory = computed(() => {
 
     return matchesStatus && matchesSearch
   })
+
+  result = [...result].sort((a, b) => {
+    switch (inventorySort.value) {
+      case 'quantity':
+        return Number(b.quantity ?? 0) - Number(a.quantity ?? 0)
+      case 'min_quantity':
+        return Number(b.min_quantity ?? 0) - Number(a.min_quantity ?? 0)
+      case 'price':
+        return Number(b.price ?? 0) - Number(a.price ?? 0)
+      case 'category':
+        return String(a.category || '').localeCompare(String(b.category || ''))
+      case 'status': {
+        const statusA = getStockStatus(a.quantity, a.min_quantity)
+        const statusB = getStockStatus(b.quantity, b.min_quantity)
+        return statusA.localeCompare(statusB)
+      }
+      case 'name':
+      default:
+        return String(a.name || '').localeCompare(String(b.name || ''))
+    }
+  })
+
+  return result
 })
 
 function countByStatus(status: 'in_stock' | 'low_stock' | 'out_of_stock') {
