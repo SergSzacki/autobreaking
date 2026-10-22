@@ -8,6 +8,11 @@ export const listCars = async () => {
   return [] as Car[]
 }
 
+export const getCarById = async (id: number) => {
+  const response = await api.get(`/cars/${id}`)
+  return response.data as Car
+}
+
 export const createCar = async (payload: CarDraft) => {
   const response = await api.post('/cars', payload)
   return response.data as Car
