@@ -77,7 +77,7 @@
                 <td>{{ part.description || '-' }}</td>
                 <td class="actions">
                   <button class="ghost small" @click="editPart(part)">Edit</button>
-                  <button class="ghost small danger" @click="deletePart(part.id)">Delete</button>
+                  <button class="ghost small danger" @click="removePart(part.id)">Delete</button>
                 </td>
               </tr>
             </tbody>
@@ -97,7 +97,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PartForm from '@/components/PartForm.vue'
 import { getCarById } from '@/api/cars'
-import { listPartsByCar, createPart, updatePart, deletePart } from '@/api/parts'
+import { listPartsByCar, createPart, updatePart, deletePart as deletePartApi } from '@/api/parts'
 import type { Car } from '@/types/car'
 import type { Part, PartDraft } from '@/types/part'
 
@@ -156,16 +156,15 @@ function hidePartForm() {
 
 function editPart(part: Part) {
   showAddPart.value = true
-  // simple editable mode is not necessary here; form can be reused with initial value if desired
   alert('Edit is available in the list panel currently.')
 }
 
-async function deletePart(partId?: number) {
+async function removePart(partId?: number) {
   if (!partId) return
   if (!confirm('Delete this part?')) return
 
   try {
-    await deletePart(carId.value, partId)
+    await deletePartApi(carId.value, partId)
     await fetchParts()
   } catch (err) {
     console.error(err)
