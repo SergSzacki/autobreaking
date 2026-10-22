@@ -1,6 +1,7 @@
 from typing import Optional
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
 
 class CarBase(SQLModel):
     make: str
@@ -11,14 +12,19 @@ class CarBase(SQLModel):
     color: Optional[str] = None
     status: Optional[str] = "available"
 
+
 class Car(CarBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    parts: list["Part"] = Relationship(back_populates="car")
+
 
 class CarCreate(CarBase):
     pass
 
+
 class CarRead(CarBase):
     id: int
+
 
 class CarUpdate(SQLModel):
     make: Optional[str] = None
