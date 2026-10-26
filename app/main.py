@@ -117,7 +117,13 @@ def list_car_parts(car_id: int, session: Session = Depends(get_session)):
     car = session.get(Car, car_id)
     if not car:
         raise HTTPException(status_code=404, detail="Car not found")
-    statement = select(Part).where(Part.car_id == car_id)
+    statement = select(Part).where(Part.car_id == car_id).order_by(Part.name)
+    return session.exec(statement).all()
+
+
+@app.get("/api/inventory", response_model=List[PartRead])
+def list_inventory(session: Session = Depends(get_session)):
+    statement = select(Part).order_by(Part.car_id, Part.name)
     return session.exec(statement).all()
 
 
