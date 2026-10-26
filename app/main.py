@@ -121,10 +121,63 @@ def list_car_parts(car_id: int, session: Session = Depends(get_session)):
     return session.exec(statement).all()
 
 
-@app.get("/api/inventory", response_model=List[PartRead])
-def list_inventory(session: Session = Depends(get_session)):
-    statement = select(Part).order_by(Part.car_id, Part.name)
-    return session.exec(statement).all()
+@app.get("/api/inventory")
+def list_inventory(
+    q: Optional[str] = Query(None),
+    make: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    session: Session = Depends(get_session),
+):
+    statement = (
+        select(Part, Car.make.label("car_make"), Car.model.label("car_model"))
+        .join(Car, Car.id == Part.car_id, isouter=True)
+        .order_by(Part.name)
+    )
+
+    filters = []
+
+    if q:
+        q_like = f"%{q}%"
+        filters.append(
+            (Part.name.ilike(q_like))
+            | (Part.sku.ilike(q_like))
+            | (Part.category.ilike(q_like))
+            | (Car.make.ilike(q_like))
+            | (Car.model.ilike(q_like))
+        )
+
+    if make:
+        filters.append(Car.make.ilike(f"%{make}%"))
+
+    if model:
+        filters.append(Car.model.ilike(f"%{model}%"))
+
+    if filters:
+        statement = statement.where(*filters)
+
+    rows = session.exec(statement).all()
+
+    result = []
+    for part, car_make, car_model in rows:
+        result.append(
+            {
+                "id": part.id,
+                "name": part.name,
+                "category": part.category,
+                "sku": part.sku,
+                "quantity": part.quantity,
+                "min_quantity": part.min_quantity,
+                "price": part.price,
+                "supplier": part.supplier,
+                "location": part.location,
+                "notes": part.notes,
+                "car_id": part.car_id,
+                "make": car_make,
+                "model": car_model,
+            }
+        )
+
+    return result
 
 
 @app.get("/api/cars/{car_id}/parts/{part_id}", response_model=PartRead)

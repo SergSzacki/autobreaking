@@ -11,6 +11,8 @@ export interface InventoryItem {
   supplier: string
   location: string
   car_id?: number | null
+  make?: string | null
+  model?: string | null
   notes?: string
 }
 

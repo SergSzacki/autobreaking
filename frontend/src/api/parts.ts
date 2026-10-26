@@ -6,6 +6,16 @@ export const listPartsByCar = async (carId: number) => {
   return (response.data || []) as Part[]
 }
 
+export const listInventory = async (query = '') => {
+  const params: Record<string, string> = {}
+  if (query.trim()) {
+    params.q = query.trim()
+  }
+
+  const response = await api.get('/inventory', { params })
+  return (response.data || []) as Part[]
+}
+
 export const createPart = async (carId: number, payload: PartDraft) => {
   const response = await api.post(`/cars/${carId}/parts`, payload)
   return response.data as Part

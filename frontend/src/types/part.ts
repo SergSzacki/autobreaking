@@ -11,6 +11,8 @@ export interface Part {
   notes?: string | null
   description?: string | null
   car_id?: number | null
+  make?: string | null
+  model?: string | null
 }
 
 export type PartDraft = Omit<Part, 'id'>
