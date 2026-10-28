@@ -28,7 +28,7 @@ function Stop-ProcessByPort($port) {
 
     $pids = $connections | Select-Object -ExpandProperty OwningProcess -Unique
 
-    foreach ($pid in $pids) {
+    foreach ($procId in $pids) {
         try {
             $proc = Get-Process -Id $pid -ErrorAction Stop
             Write-Warn "Stopping process on port ${port}: $($proc.ProcessName) (PID $pid)"
@@ -131,7 +131,7 @@ Start-Process powershell -ArgumentList '-NoExit', '-Command', $frontendCommand
 # open browser
 Start-Sleep -Seconds 4
 Start-Process "http://localhost:5173"
-Start-Process "http://localhost:8000/docs"
+# Start-Process "http://localhost:8000/docs"
 
 Write-Host ""
 Write-Host "===============================================" -ForegroundColor Green
