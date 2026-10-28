@@ -1,517 +1,205 @@
 <template>
-  <div class="cars-shell">
-    <div class="topbar">
-      <div>
-        <div class="eyebrow">Fleet overview</div>
-        <h2>Cars</h2>
+  <form class="part-form" @submit.prevent="submitForm">
+    <div class="field-grid">
+      <div class="field">
+        <label>Name</label>
+        <input v-model="form.name" required />
       </div>
 
-      <button class="primary" @click="openCreateCarForm">
-        {{ showCarForm ? 'Hide form' : 'Add car' }}
-      </button>
-    </div>
-
-    <div v-if="showCarForm" class="panel form-panel">
-      <CarForm :initial="editingCar" ref="carFormRef" @saved="handleCarSaved" @cancel="cancelCarForm" />
-    </div>
-
-    <div class="toolbar">
-      <div class="filters">
-        <input
-          v-model="searchTerm"
-          class="search-input"
-          type="text"
-          placeholder="Search by make, model or VIN"
-        />
-
-        <select v-model="statusFilter" class="filter-select">
-          <option value="all">All statuses</option>
-          <option value="available">available</option>
-          <option value="maintenance">maintenance</option>
-          <option value="sold">sold</option>
-        </select>
-
-        <select v-model="carsSort" class="filter-select">
-          <option value="make">Sort by: name</option>
-          <option value="year">Sort by: year</option>
-          <option value="status">Sort by: status</option>
-          <option value="id">Sort by: ID</option>
+      <div class="field">
+        <label>Category</label>
+        <select v-model="form.category">
+          <option value="">Select category</option>
+          <option value="engine">Engine</option>
+          <option value="brakes">Brakes</option>
+          <option value="suspension">Suspension</option>
+          <option value="electrical">Electrical</option>
+          <option value="body">Body</option>
+          <option value="interior">Interior</option>
+          <option value="tires">Tires</option>
+          <option value="fluids">Fluids</option>
+          <option value="filters">Filters</option>
         </select>
       </div>
 
-      <div class="toolbar-right">
-        <button class="secondary" @click="fetchCars">Refresh</button>
-        <span class="counter">{{ filteredCars.length }} cars</span>
+      <div class="field">
+        <label>SKU</label>
+        <input v-model="form.sku" placeholder="OF-2042" />
+      </div>
+
+      <div class="field">
+        <label>Quantity</label>
+        <input v-model.number="form.quantity" type="number" min="0" />
+      </div>
+
+      <div class="field">
+        <label>Min quantity</label>
+        <input v-model.number="form.min_quantity" type="number" min="0" />
+      </div>
+
+      <div class="field">
+        <label>Price</label>
+        <input v-model.number="form.price" type="number" min="0" step="0.01" />
+      </div>
+
+      <div class="field">
+        <label>Supplier</label>
+        <input v-model="form.supplier" placeholder="OEM / supplier" />
+      </div>
+
+      <div class="field">
+        <label>Location</label>
+        <input v-model="form.location" placeholder="A1 / Shelf B" />
+      </div>
+
+      <div class="field wide">
+        <label>Notes</label>
+        <textarea v-model="form.notes" rows="3" />
       </div>
     </div>
 
-    <div class="list-wrap">
-      <div v-for="car in filteredCars" :key="car.id" class="car-card">
-        <div class="car-header">
-          <div>
-            <div class="car-name">{{ car.make }} {{ car.model }}</div>
-            <div class="meta">{{ car.year }} • <span :class="['status-badge', statusClass(car.status)]">{{ car.status || 'available' }}</span></div>
-          </div>
-
-          <div class="actions">
-            <button class="ghost" @click="openCarDetails(car.id)">Details</button>
-            <button class="ghost" @click="startEditCar(car)">Edit</button>
-            <button class="ghost danger" @click="confirmDeleteCar(car.id)">Delete</button>
-            <button class="ghost" @click="toggleParts(car.id)">
-              {{ expandedCarId === car.id ? 'Hide parts' : `Parts (${(partsByCar[car.id] || []).length})` }}
-            </button>
-          </div>
-        </div>
-
-        <div class="car-grid">
-          <div><span>ID</span><strong>#{{ car.id }}</strong></div>
-          <div><span>VIN</span><strong>{{ car.vin || '-' }}</strong></div>
-          <div><span>Mileage</span><strong>{{ car.mileage ?? 0 }}</strong></div>
-          <div><span>Color</span><strong>{{ car.color || '-' }}</strong></div>
-        </div>
-
-        <div v-if="expandedCarId === car.id" class="parts-panel">
-          <div class="parts-header">
-            <strong>Parts for {{ car.make }} {{ car.model }}</strong>
-            <div class="parts-tools">
-              <select v-model="partsSort" class="filter-select small-select">
-                <option value="name">Sort by name</option>
-                <option value="quantity">Sort by qty</option>
-                <option value="price">Sort by price</option>
-                <option value="category">Sort by category</option>
-              </select>
-              <button class="small primary" @click="showPartForm(car.id)">Add part</button>
-            </div>
-          </div>
-
-          <div v-if="partFormCarId === car.id" class="part-form-wrap">
-            <PartForm :initial="editingPart" :car-id="car.id" @saved="handlePartSaved" @cancel="cancelPartForm" />
-          </div>
-
-          <table class="parts-table" v-if="(partsByCar[car.id] || []).length">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>SKU</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Description</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="part in sortParts(partsByCar[car.id] || [], partsSort)" :key="part.id">
-                <td>{{ part.name }}</td>
-                <td>{{ part.category || '-' }}</td>
-                <td>{{ part.sku || '-' }}</td>
-                <td>{{ part.quantity ?? 0 }}</td>
-                <td>{{ part.price ?? 0 }}</td>
-                <td>{{ part.description || '-' }}</td>
-                <td class="cell-actions">
-                  <button class="small ghost" @click="editPart(car.id, part)">Edit</button>
-                  <button class="small ghost danger" @click="deletePartEntry(car.id, part.id)">Delete</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div v-else class="empty-state">No parts added for this car yet.</div>
-        </div>
-      </div>
+    <div class="actions-row">
+      <button type="submit" class="primary">Save part</button>
+      <button type="button" class="ghost" @click="onCancel">Cancel</button>
     </div>
-
-    <div v-if="loading" class="loading">Loading...</div>
-  </div>
+  </form>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import CarForm from '@/components/CarForm.vue'
-import PartForm from '@/components/PartForm.vue'
-import type { CarDraft, Car } from '@/types/car'
+import { reactive, watch } from 'vue'
 import type { Part, PartDraft } from '@/types/part'
-import { listCars, createCar, updateCar, deleteCar } from '@/api/cars'
-import { listPartsByCar, createPart, updatePart, deletePart } from '@/api/parts'
 
-const router = useRouter()
+const props = defineProps<{ initial?: Partial<Part>; carId?: number | null }>()
+const emit = defineEmits<{ (e: 'saved', payload: { id?: number; data: PartDraft }): void; (e: 'cancel'): void }>()
 
-const cars = ref<any[]>([])
-const loading = ref(false)
-const searchTerm = ref('')
-const statusFilter = ref('all')
-const carsSort = ref<'make' | 'year' | 'status' | 'id'>('make')
-const partsSort = ref<'name' | 'quantity' | 'price' | 'category'>('name')
-
-const showCarForm = ref(false)
-const editingCar = ref<Partial<Car> | undefined>(undefined)
-const carFormRef = ref(null as any)
-
-const expandedCarId = ref<number | null>(null)
-const partsByCar = ref<Record<number, Part[]>>({})
-const partFormCarId = ref<number | null>(null)
-const editingPart = ref<Partial<Part> | undefined>(undefined)
-
-const filteredCars = computed(() => {
-  const q = searchTerm.value.trim().toLowerCase()
-
-  const result = cars.value.filter((car) => {
-    const matchesStatus = statusFilter.value === 'all' || (car.status || 'available') === statusFilter.value
-    if (!matchesStatus) return false
-
-    if (!q) return true
-
-    const haystack = `${car.make || ''} ${car.model || ''} ${car.vin || ''}`.toLowerCase()
-    return haystack.includes(q)
-  })
-
-  return [...result].sort((a, b) => {
-    switch (carsSort.value) {
-      case 'year':
-        return Number(b.year ?? 0) - Number(a.year ?? 0)
-      case 'status':
-        return String(a.status || 'available').localeCompare(String(b.status || 'available'))
-      case 'id':
-        return Number(a.id ?? 0) - Number(b.id ?? 0)
-      case 'make':
-      default:
-        return `${a.make || ''} ${a.model || ''}`.localeCompare(`${b.make || ''} ${b.model || ''}`)
-    }
-  })
+const defaultForm = (): PartDraft => ({
+  name: '',
+  category: '',
+  sku: '',
+  quantity: 0,
+  min_quantity: 0,
+  price: 0,
+  supplier: '',
+  location: '',
+  notes: '',
+  car_id: props.carId ?? null,
 })
 
-function statusClass(status?: string | null) {
-  switch (status) {
-    case 'maintenance': return 'status-maintenance'
-    case 'sold': return 'status-sold'
-    default: return 'status-available'
-  }
-}
+const form = reactive<PartDraft>(defaultForm())
 
-function sortParts(items: Part[], key: 'name' | 'quantity' | 'price' | 'category') {
-  return [...items].sort((a, b) => {
-    switch (key) {
-      case 'quantity':
-        return Number(b.quantity ?? 0) - Number(a.quantity ?? 0)
-      case 'price':
-        return Number(b.price ?? 0) - Number(a.price ?? 0)
-      case 'category':
-        return String(a.category || '').localeCompare(String(b.category || ''))
-      case 'name':
-      default:
-        return String(a.name || '').localeCompare(String(b.name || ''))
-    }
-  })
-}
+const resetForm = () => {
+  const init = props.initial
 
-async function fetchCars() {
-  loading.value = true
-  try {
-    const data = await listCars()
-    cars.value = data || []
-
-    for (const car of cars.value) {
-      if (car.id) {
-        await fetchPartsForCar(car.id)
-      }
-    }
-  } catch (err) {
-    console.error(err)
-  } finally {
-    loading.value = false
-  }
-}
-
-async function fetchPartsForCar(carId: number) {
-  try {
-    const data = await listPartsByCar(carId)
-    partsByCar.value[carId] = data || []
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-function openCreateCarForm() {
-  editingCar.value = undefined
-  showCarForm.value = !showCarForm.value
-
-  if (showCarForm.value && carFormRef.value && typeof carFormRef.value.reset === 'function') {
-    carFormRef.value.reset()
-  }
-}
-
-function startEditCar(car: Car) {
-  editingCar.value = car
-  showCarForm.value = true
-}
-
-function cancelCarForm() {
-  showCarForm.value = false
-  editingCar.value = undefined
-}
-
-async function handleCarSaved(payload: { id?: number; data: CarDraft }) {
-  try {
-    if (payload.id) {
-      await updateCar(payload.id, payload.data)
-    } else {
-      await createCar(payload.data)
-    }
-
-    if (carFormRef.value && typeof carFormRef.value.reset === 'function') {
-      carFormRef.value.reset()
-    }
-
-    showCarForm.value = false
-    editingCar.value = undefined
-    await fetchCars()
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-async function confirmDeleteCar(id: number) {
-  if (!confirm('Delete car #' + id + '?')) return
-
-  try {
-    await deleteCar(id)
-    await fetchCars()
-  } catch (err) {
-    console.error(err)
-    alert('Delete failed')
-  }
-}
-
-function toggleParts(carId: number) {
-  if (expandedCarId.value === carId) {
-    expandedCarId.value = null
+  if (init) {
+    form.name = init.name ?? ''
+    form.category = init.category ?? ''
+    form.sku = init.sku ?? ''
+    form.quantity = init.quantity ?? 0
+    form.min_quantity = init.min_quantity ?? 0
+    form.price = init.price ?? 0
+    form.supplier = init.supplier ?? ''
+    form.location = init.location ?? ''
+    form.notes = init.notes ?? init.description ?? ''
+    form.car_id = props.carId ?? init.car_id ?? null
     return
   }
 
-  expandedCarId.value = carId
+  const d = defaultForm()
+  form.name = d.name
+  form.category = d.category
+  form.sku = d.sku
+  form.quantity = d.quantity
+  form.min_quantity = d.min_quantity
+  form.price = d.price
+  form.supplier = d.supplier
+  form.location = d.location
+  form.notes = d.notes
+  form.car_id = d.car_id
+}
 
-  if (!partsByCar.value[carId]) {
-    fetchPartsForCar(carId)
+watch(() => props.initial, resetForm, { immediate: true })
+watch(() => props.carId, resetForm)
+
+const submitForm = () => {
+  const payload: PartDraft = {
+    name: String(form.name).trim(),
+    category: form.category ? String(form.category).trim() : null,
+    sku: form.sku ? String(form.sku).trim() : null,
+    quantity: Number(form.quantity || 0),
+    min_quantity: Number(form.min_quantity || 0),
+    price: Number(form.price || 0),
+    supplier: form.supplier ? String(form.supplier).trim() : null,
+    location: form.location ? String(form.location).trim() : null,
+    notes: form.notes ? String(form.notes).trim() : null,
+    car_id: props.carId ?? form.car_id ?? null,
   }
+
+  const id = (props.initial && (props.initial as any).id) as number | undefined
+  emit('saved', { id, data: payload })
 }
 
-function showPartForm(carId: number) {
-  partFormCarId.value = carId
-  editingPart.value = undefined
-}
+const onCancel = () => emit('cancel')
 
-function editPart(carId: number, part: Part) {
-  partFormCarId.value = carId
-  editingPart.value = part
-}
+const reset = () => resetForm()
 
-function cancelPartForm() {
-  partFormCarId.value = null
-  editingPart.value = undefined
-}
-
-async function handlePartSaved(payload: { id?: number; data: PartDraft }) {
-  try {
-    const carId = partFormCarId.value
-    if (!carId) return
-
-    if (payload.id) {
-      await updatePart(carId, payload.id, payload.data)
-    } else {
-      await createPart(carId, payload.data)
-    }
-
-    const currentCarId = carId
-    partFormCarId.value = null
-    editingPart.value = undefined
-
-    await fetchPartsForCar(currentCarId)
-  } catch (err) {
-    console.error(err)
-    alert('Save part failed')
-  }
-}
-
-async function deletePartEntry(carId: number, partId?: number) {
-  if (!partId) return
-  if (!confirm('Delete this part?')) return
-
-  try {
-    await deletePart(carId, partId)
-    await fetchPartsForCar(carId)
-  } catch (err) {
-    console.error(err)
-    alert('Delete part failed')
-  }
-}
-
-function openCarDetails(carId: number) {
-  router.push(`/cars/${carId}`)
-}
-
-fetchCars()
+defineExpose({ reset })
 </script>
 
 <style scoped>
-.cars-shell {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 16px 40px;
-  font-family: Inter, Arial, sans-serif;
-}
-
-.topbar,
-.toolbar,
-.car-header,
-.parts-header,
-.parts-tools {
+.part-form {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 12px;
 }
 
-.topbar {
-  margin-bottom: 20px;
-}
-
-.eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #7c8aa5;
-}
-
-h2 {
-  margin: 4px 0 0;
-  font-size: 2rem;
-}
-
-.panel,
-.car-card {
-  background: #ffffff;
-  border: 1px solid #e7edf7;
-  border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
-}
-
-.form-panel {
-  padding: 18px;
-  margin-bottom: 18px;
-}
-
-.toolbar {
-  margin: 18px 0;
-  flex-wrap: wrap;
-}
-
-.filters {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.search-input,
-.filter-select {
-  border: 1px solid #dfe7f3;
-  border-radius: 10px;
-  padding: 10px 12px;
-  min-height: 42px;
-  background: white;
-  color: #1f2937;
-}
-
-.search-input {
-  min-width: 280px;
-}
-
-.small-select {
-  min-width: 170px;
-  min-height: 36px;
-  padding: 6px 10px;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.counter {
-  color: #53627b;
-  font-size: 0.9rem;
-}
-
-.list-wrap {
+.field-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 12px;
 }
 
-.car-card {
-  padding: 18px;
-}
-
-.car-name {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.meta {
-  margin-top: 6px;
+.field {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #64748b;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field.wide {
+  grid-column: 1 / -1;
+}
+
+label {
+  font-weight: 600;
+  color: #41526b;
   font-size: 0.85rem;
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: lowercase;
+input, textarea, select {
+  width: 100%;
+  border: 1px solid #d7e0ee;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  background: white;
+  box-sizing: border-box;
 }
 
-.status-available {
-  background: #e0f2fe;
-  color: #075985;
+textarea {
+  min-height: 90px;
+  resize: vertical;
 }
 
-.status-maintenance {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.status-sold {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.actions {
+.actions-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 button {
   border: 1px solid transparent;
   border-radius: 10px;
-  padding: 8px 12px;
-  background: #edf3ff;
-  color: #1e293b;
-  cursor: pointer;
+  padding: 8px 14px;
   font-weight: 600;
-  transition: 0.2s ease;
-}
-
-button:hover {
-  transform: translateY(-1px);
+  cursor: pointer;
 }
 
 button.primary {
@@ -519,129 +207,9 @@ button.primary {
   color: white;
 }
 
-button.secondary {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-
 button.ghost {
   background: #f8fafc;
-  border-color: #d8e1ef;
-}
-
-button.danger {
-  background: #fff1f2;
-  color: #be123c;
-  border-color: #fecdd3;
-}
-
-button.small {
-  padding: 6px 10px;
-  font-size: 0.8rem;
-}
-
-.car-grid {
-  margin-top: 18px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
-  gap: 12px;
-}
-
-.car-grid div {
-  background: #f8fafc;
-  border: 1px solid #edf2f7;
-  border-radius: 12px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.car-grid span {
-  color: #72819a;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.car-grid strong {
-  color: #0f172a;
-  font-size: 0.96rem;
-}
-
-.parts-panel {
-  margin-top: 18px;
-  background: #f8fafc;
-  border: 1px solid #e8eef8;
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.parts-header {
-  margin-bottom: 12px;
-}
-
-.part-form-wrap {
-  background: white;
-  border: 1px solid #edf2f7;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-
-.parts-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-}
-
-.parts-table th,
-.parts-table td {
-  border: 1px solid #edf2f7;
-  padding: 10px 12px;
-  text-align: left;
-  vertical-align: top;
-}
-
-.parts-table th {
-  background: #f3f6fb;
-  color: #475569;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.cell-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.empty-state {
-  padding: 18px 10px 8px;
-  color: #64748b;
-}
-
-.loading {
-  margin-top: 18px;
-  color: #475569;
-}
-
-@media (max-width: 768px) {
-  .car-grid {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
-  }
-
-  .topbar,
-  .toolbar,
-  .car-header,
-  .parts-header,
-  .parts-tools {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .search-input {
-    min-width: 100%;
-  }
+  border-color: #dfe7f3;
+  color: #1f2937;
 }
 </style>
