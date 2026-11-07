@@ -1,38 +1,71 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 170" role="img" aria-labelledby="title desc">
   <title id="title">S.Szacki</title>
-  <desc id="desc">Blue microchip emblem and S.Szacki wordmark</desc>
+  <desc id="desc">Metallic blue microchip emblem and S.Szacki wordmark</desc>
   <defs>
-    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f8fdff"/>
-      <stop offset=".42" stop-color="#82d9ff"/>
-      <stop offset=".72" stop-color="#1688ef"/>
-      <stop offset="1" stop-color="#e8fbff"/>
+    <linearGradient id="silver" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".22" stop-color="#d8f6ff"/>
+      <stop offset=".48" stop-color="#72cfff"/>
+      <stop offset=".68" stop-color="#f5fdff"/>
+      <stop offset="1" stop-color="#70baff"/>
     </linearGradient>
-    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#54e6ff"/>
-      <stop offset=".48" stop-color="#0878f9"/>
-      <stop offset="1" stop-color="#0734aa"/>
+    <linearGradient id="electricBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67efff"/>
+      <stop offset=".38" stop-color="#11a9ff"/>
+      <stop offset=".72" stop-color="#0871ed"/>
+      <stop offset="1" stop-color="#082a88"/>
     </linearGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
+    <linearGradient id="chipFace" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a3f8e"/>
+      <stop offset=".48" stop-color="#041a4e"/>
+      <stop offset="1" stop-color="#020c2a"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#effcff"/>
+      <stop offset=".3" stop-color="#9be8ff"/>
+      <stop offset=".55" stop-color="#f8fdff"/>
+      <stop offset=".78" stop-color="#46bfff"/>
+      <stop offset="1" stop-color="#0873d9"/>
+    </linearGradient>
+    <filter id="neon" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <g transform="translate(10 12)" filter="url(#glow)">
-    <rect x="22" y="30" width="150" height="118" rx="19" fill="#071b48" stroke="url(#metal)" stroke-width="7"/>
-    <rect x="34" y="42" width="126" height="94" rx="12" fill="#06163c" stroke="#168efa" stroke-width="4"/>
-    <path d="M116 54H69c-21 0-33 10-33 26 0 15 11 22 29 27l36 9c9 2 13 5 13 10 0 6-6 10-16 10H43v-15h50l-27-7c-24-6-37-15-37-33 0-23 18-39 46-39h41z" fill="url(#metal)" stroke="#32c8ff" stroke-width="2"/>
-    <path d="M55 126h52c20 0 31-10 31-25 0-9-5-16-15-21l-21-9 10-13 25 11c13 6 20 17 20 32 0 25-18 41-48 41H55z" fill="url(#blue)" stroke="#55dcff" stroke-width="2"/>
-    <g stroke="url(#metal)" stroke-width="7" stroke-linecap="round">
-      <path d="M49 18V4M83 18V4M117 18V4M151 18V4M49 160v9M83 160v9M117 160v9M151 160v9"/>
-      <path d="M8 57H21M8 88H21M8 119H21M173 57h13M173 88h13M173 119h13"/>
-    </g>
-    <g fill="url(#blue)" stroke="#a8efff" stroke-width="3">
-      <circle cx="49" cy="4" r="6"/><circle cx="83" cy="4" r="6"/><circle cx="117" cy="4" r="6"/><circle cx="151" cy="4" r="6"/>
-      <circle cx="8" cy="57" r="6"/><circle cx="8" cy="88" r="6"/><circle cx="8" cy="119" r="6"/><circle cx="186" cy="57" r="6"/><circle cx="186" cy="88" r="6"/><circle cx="186" cy="119" r="6"/>
-    </g>
+
+  <!-- Fine speed trails echo the original luminous circuit artwork. -->
+  <g fill="none" stroke="#168fff" stroke-linecap="round" opacity=".8">
+    <path d="M225 77h520M223 86h470M220 125h520M228 134h450" stroke-width="2"/>
+    <path d="M238 70h178M245 142h250M620 94h110M580 117h158" stroke="#62dfff" stroke-width="1.5" opacity=".75"/>
   </g>
-  <path d="M220 100h28m0 0 18-18m-18 18 18 18" fill="none" stroke="#159cff" stroke-width="3" opacity=".8"/>
-  <text x="292" y="119" fill="#102a53" font-family="Arial, Helvetica, sans-serif" font-size="77" font-weight="700" letter-spacing="-3">S.Szacki</text>
-  <path d="M295 136h428" stroke="#168efa" stroke-width="3" opacity=".55"/>
+
+  <g transform="translate(10 6)" filter="url(#neon)">
+    <rect x="34" y="37" width="161" height="119" rx="19" fill="#020b24" stroke="url(#silver)" stroke-width="7"/>
+    <rect x="44" y="47" width="141" height="99" rx="12" fill="url(#chipFace)" stroke="#078af8" stroke-width="4"/>
+    <path d="M147 57H91c-25 0-40 12-40 31 0 17 12 26 34 31l40 10c10 2 15 6 15 11 0 7-7 11-19 11H62v-16h57l-35-9c-27-7-42-17-42-38 0-27 21-45 54-45h51z" fill="url(#silver)" stroke="#5bdfff" stroke-width="2"/>
+    <path d="M70 137h62c23 0 36-12 36-29 0-11-6-19-18-25l-26-12 12-16 29 13c16 8 24 21 24 39 0 29-21 48-56 48H70z" fill="url(#electricBlue)" stroke="#43d7ff" stroke-width="2.5"/>
+
+    <!-- Top and bottom chip pins -->
+    <g fill="none" stroke="url(#silver)" stroke-width="8" stroke-linecap="round">
+      <path d="M63 25V10M96 25V10M129 25V10M162 25V10M63 157v10M96 157v10M129 157v10M162 157v10"/>
+    </g>
+    <g fill="url(#electricBlue)" stroke="#c2f5ff" stroke-width="3">
+      <circle cx="63" cy="9" r="7"/><circle cx="96" cy="9" r="7"/><circle cx="129" cy="9" r="7"/><circle cx="162" cy="9" r="7"/>
+    </g>
+
+    <!-- Side pins and circuit nodes -->
+    <g fill="none" stroke="url(#silver)" stroke-width="7" stroke-linecap="round">
+      <path d="M20 61H33M20 91H33M20 121H33M196 61h14M196 91h14M196 121h14"/>
+      <path d="M20 61H7M20 91H3M20 121H8M210 61h14M210 91h18M210 121h12"/>
+    </g>
+    <g fill="url(#electricBlue)" stroke="#c6f7ff" stroke-width="3">
+      <circle cx="7" cy="61" r="7"/><circle cx="3" cy="91" r="7"/><circle cx="8" cy="121" r="7"/>
+      <circle cx="224" cy="61" r="7"/><circle cx="228" cy="91" r="7"/><circle cx="222" cy="121" r="7"/>
+    </g>
+    <path d="M30 33h164M31 151h163" stroke="#8deaff" stroke-width="2" opacity=".75"/>
+  </g>
+
+  <path d="M242 95h26l18-18m-18 18 18 18" fill="none" stroke="#32c8ff" stroke-width="3" opacity=".9"/>
+  <text x="310" y="119" fill="url(#word)" stroke="#07366e" stroke-width="1.4" paint-order="stroke" font-family="Arial, Helvetica, sans-serif" font-size="76" font-style="italic" font-weight="700" letter-spacing="-3">S.Szacki</text>
+  <path d="M311 132h416" stroke="#20aaff" stroke-width="2" opacity=".8"/>
 </svg>
