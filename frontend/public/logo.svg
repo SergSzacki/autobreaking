@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 170" role="img" aria-labelledby="title desc">
+  <title id="title">S.Szacki</title>
+  <desc id="desc">Blue microchip emblem and S.Szacki wordmark</desc>
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fdff"/>
+      <stop offset=".42" stop-color="#82d9ff"/>
+      <stop offset=".72" stop-color="#1688ef"/>
+      <stop offset="1" stop-color="#e8fbff"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#54e6ff"/>
+      <stop offset=".48" stop-color="#0878f9"/>
+      <stop offset="1" stop-color="#0734aa"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g transform="translate(10 12)" filter="url(#glow)">
+    <rect x="22" y="30" width="150" height="118" rx="19" fill="#071b48" stroke="url(#metal)" stroke-width="7"/>
+    <rect x="34" y="42" width="126" height="94" rx="12" fill="#06163c" stroke="#168efa" stroke-width="4"/>
+    <path d="M116 54H69c-21 0-33 10-33 26 0 15 11 22 29 27l36 9c9 2 13 5 13 10 0 6-6 10-16 10H43v-15h50l-27-7c-24-6-37-15-37-33 0-23 18-39 46-39h41z" fill="url(#metal)" stroke="#32c8ff" stroke-width="2"/>
+    <path d="M55 126h52c20 0 31-10 31-25 0-9-5-16-15-21l-21-9 10-13 25 11c13 6 20 17 20 32 0 25-18 41-48 41H55z" fill="url(#blue)" stroke="#55dcff" stroke-width="2"/>
+    <g stroke="url(#metal)" stroke-width="7" stroke-linecap="round">
+      <path d="M49 18V4M83 18V4M117 18V4M151 18V4M49 160v9M83 160v9M117 160v9M151 160v9"/>
+      <path d="M8 57H21M8 88H21M8 119H21M173 57h13M173 88h13M173 119h13"/>
+    </g>
+    <g fill="url(#blue)" stroke="#a8efff" stroke-width="3">
+      <circle cx="49" cy="4" r="6"/><circle cx="83" cy="4" r="6"/><circle cx="117" cy="4" r="6"/><circle cx="151" cy="4" r="6"/>
+      <circle cx="8" cy="57" r="6"/><circle cx="8" cy="88" r="6"/><circle cx="8" cy="119" r="6"/><circle cx="186" cy="57" r="6"/><circle cx="186" cy="88" r="6"/><circle cx="186" cy="119" r="6"/>
+    </g>
+  </g>
+  <path d="M220 100h28m0 0 18-18m-18 18 18 18" fill="none" stroke="#159cff" stroke-width="3" opacity=".8"/>
+  <text x="292" y="119" fill="#102a53" font-family="Arial, Helvetica, sans-serif" font-size="77" font-weight="700" letter-spacing="-3">S.Szacki</text>
+  <path d="M295 136h428" stroke="#168efa" stroke-width="3" opacity=".55"/>
+</svg>
