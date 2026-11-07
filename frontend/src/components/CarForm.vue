@@ -2,7 +2,15 @@
   <form @submit.prevent="submitForm">
     <div>
       <label>Make</label>
-      <input v-model="form.make" required />
+      <input
+        v-model="form.make"
+        list="car-makes-list"
+        placeholder="Select or type a brand"
+        required
+      />
+      <datalist id="car-makes-list">
+        <option v-for="brand in carMakes" :key="brand" :value="brand" />
+      </datalist>
     </div>
     <div>
       <label>Model</label>
@@ -40,11 +48,37 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, toRaw } from 'vue'
+import { reactive, watch } from 'vue'
 import type { CarDraft, Car } from '@/types/car'
 
 const props = defineProps<{ initial?: Partial<Car> }>()
 const emit = defineEmits<{ (e: 'saved', payload: { id?: number; data: CarDraft }): void; (e: 'cancel'): void }>()
+
+const carMakes = [
+  'Audi',
+  'BMW',
+  'Chevrolet',
+  'Citroen',
+  'Dodge',
+  'Ford',
+  'Honda',
+  'Hyundai',
+  'Kia',
+  'Lexus',
+  'Mazda',
+  'Mercedes-Benz',
+  'Mitsubishi',
+  'Nissan',
+  'Peugeot',
+  'Porsche',
+  'Renault',
+  'Subaru',
+  'Suzuki',
+  'Tesla',
+  'Toyota',
+  'Volkswagen',
+  'Volvo',
+]
 
 const defaultForm = (): CarDraft => ({
   make: '',
@@ -58,7 +92,6 @@ const defaultForm = (): CarDraft => ({
 
 const form = reactive<CarDraft>(defaultForm())
 
-// initialize with props.initial when provided
 const resetForm = () => {
   const init = props.initial
   if (init) {
@@ -94,7 +127,6 @@ const submitForm = async () => {
     status: form.status || 'available',
   }
 
-  // include id if editing via props.initial
   const id = (props.initial && (props.initial as any).id) as number | undefined
   emit('saved', { id, data: payload })
 }
