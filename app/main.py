@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict
 
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
@@ -122,60 +122,33 @@ def list_car_parts(car_id: int, session: Session = Depends(get_session)):
 
 
 @app.get("/api/inventory")
-def list_inventory(
-    q: Optional[str] = Query(None),
-    make: Optional[str] = Query(None),
-    model: Optional[str] = Query(None),
-    session: Session = Depends(get_session),
-):
-    statement = (
-        select(Part, Car.make.label("car_make"), Car.model.label("car_model"))
-        .join(Car, Car.id == Part.car_id, isouter=True)
-        .order_by(Part.name)
-    )
+def list_inventory(db: Session = 
+Depends(get_session)):
 
-    filters = []
-
-    if q:
-        q_like = f"%{q}%"
-        filters.append(
-            (Part.name.ilike(q_like))
-            | (Part.sku.ilike(q_like))
-            | (Part.category.ilike(q_like))
-            | (Car.make.ilike(q_like))
-            | (Car.model.ilike(q_like))
-        )
-
-    if make:
-        filters.append(Car.make.ilike(f"%{make}%"))
-
-    if model:
-        filters.append(Car.model.ilike(f"%{model}%"))
-
-    if filters:
-        statement = statement.where(*filters)
-
-    rows = session.exec(statement).all()
-
+    parts = db.query(Part).all()
     result = []
-    for part, car_make, car_model in rows:
-        result.append(
-            {
-                "id": part.id,
-                "name": part.name,
-                "category": part.category,
-                "sku": part.sku,
-                "quantity": part.quantity,
-                "min_quantity": part.min_quantity,
-                "price": part.price,
-                "supplier": part.supplier,
-                "location": part.location,
-                "notes": part.notes,
-                "car_id": part.car_id,
-                "make": car_make,
-                "model": car_model,
-            }
-        )
+
+    for part in parts:
+        min_quantity = getattr(part, "min_quantity", None)
+        if min_quantity is None:
+            min_quantity = getattr(part, "minimum_quantity", None)
+        if min_quantity is None:
+            min_quantity = getattr(part, "low_stock_threshold", 0)
+
+        result.append({
+            "id": part.id,
+            "name": part.name,
+            "sku": part.sku,
+            "category": part.category,
+            "quantity": part.quantity,
+            "min_quantity": min_quantity,
+            "price": part.price,
+            "supplier": getattr(part, "supplier", None),
+            "location": getattr(part, "location", None),
+            "make": getattr(part, "make", None),
+            "model": getattr(part, "model", None),
+            "car_id": getattr(part, "car_id", None),
+        })
 
     return result
 
