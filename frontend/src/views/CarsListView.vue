@@ -76,10 +76,12 @@
             <PartForm :key="`${car.id}-${editingPart?.id ?? 'new'}`" :initial="editingPart" :car-id="car.id" @saved="handlePartSaved" @cancel="cancelPartForm" />
           </div>
           <table v-if="(partsByCar[car.id] || []).length" class="parts-table">
-            <thead><tr><th>Name</th><th>Category</th><th>SKU</th><th>Qty</th><th>Price</th><th>Notes</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Photos</th><th>Category</th><th>SKU</th><th>Qty</th><th>Price</th><th>Notes</th><th>Actions</th></tr></thead>
             <tbody>
               <tr v-for="part in sortParts(partsByCar[car.id] || [], partsSort)" :key="part.id">
-                <td>{{ part.name }}</td><td>{{ part.category || '-' }}</td><td>{{ part.sku || '-' }}</td>
+                <td>{{ part.name }}</td>
+                <td><PartPhotos :photos="part.photos" :label="`${part.name} photos`" /></td>
+                <td>{{ part.category || '-' }}</td><td>{{ part.sku || '-' }}</td>
                 <td>{{ part.quantity ?? 0 }}</td><td>{{ part.price ?? 0 }}</td><td>{{ part.notes ?? part.description ?? '-' }}</td>
                 <td class="cell-actions">
                   <button class="small ghost" @click="editPart(car.id, part)">Edit</button>
@@ -101,6 +103,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CarForm from '@/components/CarForm.vue'
 import PartForm from '@/components/PartForm.vue'
+import PartPhotos from '@/components/PartPhotos.vue'
 import type { Car, CarDraft } from '@/types/car'
 import type { Part, PartDraft } from '@/types/part'
 import { listCars, createCar, updateCar, deleteCar } from '@/api/cars'
@@ -279,5 +282,5 @@ button.small { padding:6px 10px; font-size:.8rem; }
 .cell-actions { display:flex; gap:8px; }
 .empty-state,.loading,.error-message { padding:16px 10px; color:#64748b; }
 .error-message { margin:12px 0; color:#991b1b; background:#fff1f2; border-radius:10px; }
-@media(max-width:768px) { .car-grid { grid-template-columns:repeat(2,minmax(120px,1fr)); } .topbar,.toolbar,.car-header,.parts-header,.parts-tools { flex-direction:column; align-items:flex-start; } .search-input { min-width:100%; } }
+@media(max-width:768px) { .car-grid { grid-template-columns:repeat(2,minmax(120px,1fr)); } .topbar,.toolbar,.car-header,.parts-header,.parts-tools { flex-direction:column; align-items:flex-start; } }
 </style>
