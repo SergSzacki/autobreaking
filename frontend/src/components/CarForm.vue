@@ -57,7 +57,7 @@ import type { CarDraft, Car } from '@/types/car'
 const props = defineProps<{ initial?: Partial<Car> }>()
 const emit = defineEmits<{ (e: 'saved', payload: { id?: number; data: CarDraft }): void; (e: 'cancel'): void }>()
 
-const carModelsByMake: Record<string, string[]> = {
+const defaultCarModelsByMake: Record<string, string[]> = {
   Audi: ['A1', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'e-tron'],
   BMW: ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5', 'X6', 'X7', 'Z4', 'i3', 'i4', 'iX'],
   Chevrolet: ['Aveo', 'Camaro', 'Captiva', 'Cruze', 'Malibu', 'Spark', 'Tahoe', 'Traverse'],
@@ -83,12 +83,69 @@ const carModelsByMake: Record<string, string[]> = {
   Volvo: ['C30', 'S60', 'S90', 'V40', 'V60', 'V90', 'XC40', 'XC60', 'XC90'],
 }
 
-const carMakes = Object.keys(carModelsByMake)
+const carOptionsStorageKey = 'autobreaking.carModelsByMake'
+
+function loadCarModelsByMake(): Record<string, string[]> {
+  const options = Object.fromEntries(
+    Object.entries(defaultCarModelsByMake).map(([make, models]) => [make, [...models]]),
+  )
+
+  try {
+    const stored = localStorage.getItem(carOptionsStorageKey)
+    if (!stored) return options
+
+    const savedOptions: unknown = JSON.parse(stored)
+    if (!savedOptions || typeof savedOptions !== 'object' || Array.isArray(savedOptions)) return options
+
+    for (const [savedMake, savedModels] of Object.entries(savedOptions)) {
+      const make = savedMake.trim()
+      if (!make || !Array.isArray(savedModels)) continue
+
+      const existingMake = Object.keys(options).find((item) => item.toLowerCase() === make.toLowerCase())
+      const makeKey = existingMake || make
+      options[makeKey] ??= []
+
+      for (const savedModel of savedModels) {
+        if (typeof savedModel !== 'string' || !savedModel.trim()) continue
+        const model = savedModel.trim()
+        if (!options[makeKey].some((item) => item.toLowerCase() === model.toLowerCase())) {
+          options[makeKey].push(model)
+        }
+      }
+    }
+  } catch {
+    // Keep the built-in options if browser storage is unavailable or invalid.
+  }
+
+  return options
+}
+
+const carModelsByMake = reactive(loadCarModelsByMake())
+const carMakes = computed(() => Object.keys(carModelsByMake).sort((a, b) => a.localeCompare(b)))
 const carModels = computed(() => {
   const make = form.make.trim().toLowerCase()
-  const matchingMake = carMakes.find((brand) => brand.toLowerCase() === make)
+  const matchingMake = Object.keys(carModelsByMake).find((brand) => brand.toLowerCase() === make)
   return matchingMake ? carModelsByMake[matchingMake] : []
 })
+
+function rememberCarOptions(makeValue: string, modelValue: string) {
+  const make = makeValue.trim()
+  const model = modelValue.trim()
+  if (!make || !model) return
+
+  const existingMake = Object.keys(carModelsByMake).find((brand) => brand.toLowerCase() === make.toLowerCase())
+  const makeKey = existingMake || make
+  carModelsByMake[makeKey] ??= []
+  if (!carModelsByMake[makeKey].some((item) => item.toLowerCase() === model.toLowerCase())) {
+    carModelsByMake[makeKey].push(model)
+  }
+
+  try {
+    localStorage.setItem(carOptionsStorageKey, JSON.stringify(carModelsByMake))
+  } catch {
+    // The car can still be saved when browser storage is unavailable.
+  }
+}
 
 const defaultForm = (): CarDraft => ({
   make: '',
@@ -142,6 +199,7 @@ const submitForm = () => {
     status: form.status || 'available',
   }
 
+  rememberCarOptions(payload.make, payload.model)
   const id = (props.initial && (props.initial as any).id) as number | undefined
   emit('saved', { id, data: payload })
 }
