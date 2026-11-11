@@ -10,6 +10,7 @@ export interface Part {
   location?: string | null
   notes?: string | null
   description?: string | null
+  photos?: string[] | null
   car_id?: number | null
   make?: string | null
   model?: string | null
