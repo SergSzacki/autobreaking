@@ -21,10 +21,12 @@
           <PartForm :key="editingPart?.id ?? 'new'" :initial="editingPart" :car-id="car.id" @saved="handlePartSaved" @cancel="cancelPartForm" />
         </div>
         <table v-if="parts.length" class="parts-table">
-          <thead><tr><th>Name</th><th>Category</th><th>SKU</th><th>Qty</th><th>Price</th><th>Notes</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th>Photos</th><th>Category</th><th>SKU</th><th>Qty</th><th>Price</th><th>Notes</th><th>Actions</th></tr></thead>
           <tbody>
             <tr v-for="part in parts" :key="part.id">
-              <td>{{ part.name }}</td><td>{{ part.category || '-' }}</td><td>{{ part.sku || '-' }}</td>
+              <td>{{ part.name }}</td>
+              <td><PartPhotos :photos="part.photos" :label="`${part.name} photos`" /></td>
+              <td>{{ part.category || '-' }}</td><td>{{ part.sku || '-' }}</td>
               <td>{{ part.quantity ?? 0 }}</td><td>{{ part.price ?? 0 }}</td><td>{{ part.notes ?? part.description ?? '-' }}</td>
               <td class="actions"><button class="ghost small" @click="editPart(part)">Edit</button><button class="ghost small danger" @click="removePart(part.id)">Delete</button></td>
             </tr>
@@ -42,6 +44,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PartForm from '@/components/PartForm.vue'
+import PartPhotos from '@/components/PartPhotos.vue'
 import { getCarById } from '@/api/cars'
 import { listPartsByCar, createPart, updatePart, deletePart as deletePartApi } from '@/api/parts'
 import type { Car } from '@/types/car'
@@ -113,7 +116,7 @@ h2 { margin:6px 0 0; font-size:2rem; }
 .parts-box { margin-top:20px; background:#f8fafc; border:1px solid #e7edf7; border-radius:14px; padding:14px; }
 .part-form-wrap { margin-bottom:12px; background:#fff; border:1px solid #edf2f7; border-radius:12px; padding:12px; }
 .parts-table { width:100%; border-collapse:collapse; background:#fff; }
-.parts-table th,.parts-table td { border:1px solid #edf2f7; padding:10px 12px; text-align:left; }
+.parts-table th,.parts-table td { border:1px solid #edf2f7; padding:10px 12px; text-align:left; vertical-align:top; }
 .parts-table th { background:#f3f6fb; color:#475569; font-size:.75rem; text-transform:uppercase; }
 .actions { display:flex; gap:8px; }
 .empty-state,.loading,.error-message { padding:18px 10px; color:#64748b; }
