@@ -10,6 +10,7 @@ class PartBase(SQLModel):
     quantity: int = 0
     price: Optional[float] = 0.0
     description: Optional[str] = None
+    photos: List[str] = Field(default_factory=list)
     car_id: Optional[int] = Field(default=None, foreign_key="car.id")
 
 
@@ -24,7 +25,6 @@ class PartCreate(PartBase):
 
 class PartRead(PartBase):
     id: int
-    photos: List[str] = Field(default_factory=list)
 
 
 class PartUpdate(SQLModel):
@@ -34,3 +34,4 @@ class PartUpdate(SQLModel):
     quantity: Optional[int] = None
     price: Optional[float] = None
     description: Optional[str] = None
+    photos: Optional[List[str]] = None
