@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -24,6 +24,7 @@ class PartCreate(PartBase):
 
 class PartRead(PartBase):
     id: int
+    photos: List[str] = Field(default_factory=list)
 
 
 class PartUpdate(SQLModel):
