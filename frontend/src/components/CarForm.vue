@@ -2,19 +2,22 @@
   <form @submit.prevent="submitForm">
     <div>
       <label>Make</label>
-      <input
-        v-model="form.make"
-        list="car-makes-list"
-        placeholder="Select or type a brand"
-        required
-      />
+      <input v-model="form.make" list="car-makes-list" placeholder="Select or type a brand" required />
       <datalist id="car-makes-list">
         <option v-for="brand in carMakes" :key="brand" :value="brand" />
       </datalist>
     </div>
     <div>
       <label>Model</label>
-      <input v-model="form.model" required />
+      <input
+        v-model="form.model"
+        list="car-models-list"
+        placeholder="Select or type a model"
+        required
+      />
+      <datalist id="car-models-list">
+        <option v-for="model in carModels" :key="model" :value="model" />
+      </datalist>
     </div>
     <div>
       <label>Year</label>
@@ -48,37 +51,44 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import type { CarDraft, Car } from '@/types/car'
 
 const props = defineProps<{ initial?: Partial<Car> }>()
 const emit = defineEmits<{ (e: 'saved', payload: { id?: number; data: CarDraft }): void; (e: 'cancel'): void }>()
 
-const carMakes = [
-  'Audi',
-  'BMW',
-  'Chevrolet',
-  'Citroen',
-  'Dodge',
-  'Ford',
-  'Honda',
-  'Hyundai',
-  'Kia',
-  'Lexus',
-  'Mazda',
-  'Mercedes-Benz',
-  'Mitsubishi',
-  'Nissan',
-  'Peugeot',
-  'Porsche',
-  'Renault',
-  'Subaru',
-  'Suzuki',
-  'Tesla',
-  'Toyota',
-  'Volkswagen',
-  'Volvo',
-]
+const carModelsByMake: Record<string, string[]> = {
+  Audi: ['A1', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'e-tron'],
+  BMW: ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '7 Series', 'X1', 'X3', 'X5', 'X6', 'X7', 'Z4', 'i3', 'i4', 'iX'],
+  Chevrolet: ['Aveo', 'Camaro', 'Captiva', 'Cruze', 'Malibu', 'Spark', 'Tahoe', 'Traverse'],
+  Citroen: ['Berlingo', 'C1', 'C3', 'C4', 'C5', 'Jumper', 'Jumpy'],
+  Dodge: ['Challenger', 'Charger', 'Durango', 'Journey', 'Ram'],
+  Ford: ['Bronco', 'EcoSport', 'Edge', 'Escape', 'Explorer', 'Fiesta', 'Focus', 'Kuga', 'Mondeo', 'Mustang', 'Ranger', 'Transit'],
+  Honda: ['Accord', 'Civic', 'CR-V', 'HR-V', 'Jazz', 'Pilot'],
+  Hyundai: ['Accent', 'Elantra', 'i10', 'i20', 'i30', 'Kona', 'Santa Fe', 'Tucson'],
+  Kia: ['Ceed', 'Niro', 'Optima', 'Picanto', 'Rio', 'Sorento', 'Sportage', 'Stonic'],
+  Lexus: ['ES', 'GS', 'IS', 'LC', 'LS', 'NX', 'RX', 'UX'],
+  Mazda: ['2', '3', '5', '6', 'CX-3', 'CX-30', 'CX-5', 'CX-9', 'MX-5'],
+  'Mercedes-Benz': ['A-Class', 'B-Class', 'C-Class', 'E-Class', 'S-Class', 'CLA', 'CLS', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'Sprinter'],
+  Mitsubishi: ['ASX', 'Eclipse Cross', 'L200', 'Lancer', 'Outlander', 'Pajero'],
+  Nissan: ['Juke', 'Leaf', 'Micra', 'Navara', 'Qashqai', 'X-Trail'],
+  Peugeot: ['208', '2008', '308', '3008', '508', '5008', 'Partner', 'Rifter'],
+  Porsche: ['718', '911', 'Cayenne', 'Macan', 'Panamera', 'Taycan'],
+  Renault: ['Clio', 'Captur', 'Kadjar', 'Kangoo', 'Megane', 'Scenic', 'Trafic'],
+  Subaru: ['Forester', 'Impreza', 'Legacy', 'Outback', 'XV'],
+  Suzuki: ['Alto', 'Baleno', 'Jimny', 'Swift', 'Vitara'],
+  Tesla: ['Model 3', 'Model S', 'Model X', 'Model Y'],
+  Toyota: ['Auris', 'Avensis', 'Aygo', 'Camry', 'Corolla', 'Hilux', 'Land Cruiser', 'Prius', 'RAV4', 'Yaris'],
+  Volkswagen: ['Arteon', 'Caddy', 'Golf', 'ID.3', 'ID.4', 'Passat', 'Polo', 'Tiguan', 'Touareg', 'Touran', 'Transporter'],
+  Volvo: ['C30', 'S60', 'S90', 'V40', 'V60', 'V90', 'XC40', 'XC60', 'XC90'],
+}
+
+const carMakes = Object.keys(carModelsByMake)
+const carModels = computed(() => {
+  const make = form.make.trim().toLowerCase()
+  const matchingMake = carMakes.find((brand) => brand.toLowerCase() === make)
+  return matchingMake ? carModelsByMake[matchingMake] : []
+})
 
 const defaultForm = (): CarDraft => ({
   make: '',
@@ -115,8 +125,13 @@ const resetForm = () => {
 }
 
 watch(() => props.initial, resetForm, { immediate: true })
+watch(() => form.make, (newMake, oldMake) => {
+  if (newMake.trim().toLowerCase() !== oldMake.trim().toLowerCase()) {
+    form.model = ''
+  }
+})
 
-const submitForm = async () => {
+const submitForm = () => {
   const payload: CarDraft = {
     make: String(form.make).trim(),
     model: String(form.model).trim(),
