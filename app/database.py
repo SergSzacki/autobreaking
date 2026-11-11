@@ -1,7 +1,8 @@
 from sqlmodel import create_engine, SQLModel
+from app.core.config import settings
 
-DATABASE_URL = "sqlite:///./cars.db"
-engine = create_engine(DATABASE_URL, echo=False)
+engine = create_engine(settings.database_url, echo=False)
+
 
 def init_db():
     SQLModel.metadata.create_all(engine)
