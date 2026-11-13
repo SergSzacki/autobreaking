@@ -58,9 +58,34 @@
       </div>
 
       <div class="field wide">
-        <label for="part-photos">Photos</label>
-        <textarea id="part-photos" v-model="form.photosText" rows="4" placeholder="https://example.com/a.jpg&#10;https://example.com/b.jpg" />
-        <small>One URL per line or comma-separated</small>
+        <label>Photos</label>
+
+        <div class="photo-tools">
+          <button type="button" class="ghost small" @click="triggerPhotoPicker">Add photo</button>
+          <input
+            ref="photoInput"
+            type="file"
+            accept="image/*"
+            multiple
+            class="hidden-file-input"
+            @change="handlePhotoSelect"
+          />
+        </div>
+
+        <div v-if="photoPreviewList.length" class="photo-preview-list">
+          <div v-for="(photo, index) in photoPreviewList" :key="`${photo}-${index}`" class="photo-preview-item">
+            <img :src="photo" :alt="`Photo ${index + 1}`" />
+            <button type="button" class="mini-btn" @click="removePhoto(index)">Remove</button>
+          </div>
+        </div>
+
+        <textarea
+          id="part-photos"
+          v-model="form.photosText"
+          rows="4"
+          placeholder="https://example.com/a.jpg&#10;data:image/png;base64,..."
+        />
+        <small>One URL per line or comma-separated. You can also add files from disk.</small>
       </div>
     </div>
 
@@ -72,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { Part, PartDraft } from '@/types/part'
 
 const props = defineProps<{ initial?: Partial<Part>; carId?: number | null }>()
@@ -80,6 +105,8 @@ const emit = defineEmits<{
   (event: 'saved', payload: { id?: number; data: PartDraft }): void
   (event: 'cancel'): void
 }>()
+
+const photoInput = ref<HTMLInputElement | null>(null)
 
 const form = reactive<PartDraft & { photosText: string }>({
   name: '',
@@ -99,13 +126,66 @@ const form = reactive<PartDraft & { photosText: string }>({
   model: '',
 })
 
-const normalizePhotos = (value: string): string[] =>
-  [...new Set(
-    value
-      .split(/[\n,]+/)
-      .map((item) => item.trim())
-      .filter(Boolean),
-  )]
+const photoPreviewList = computed(() => normalizePhotos(form.photosText))
+
+function normalizePhotos(value: string): string[] {
+  const entries = value
+    .split(/\r?\n/)
+    .flatMap((line) => {
+      const trimmed = line.trim()
+      if (!trimmed) return []
+
+      if (trimmed.startsWith('data:')) {
+        return [trimmed]
+      }
+
+      return trimmed
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    })
+
+  return [...new Set(entries.filter(Boolean))]
+}
+
+function triggerPhotoPicker() {
+  photoInput.value?.click()
+}
+
+function removePhoto(index: number) {
+  const photos = normalizePhotos(form.photosText)
+  photos.splice(index, 1)
+  form.photosText = photos.join('\n')
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function handlePhotoSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = Array.from(input.files ?? []).filter((file) => file.type.startsWith('image/'))
+
+  if (!files.length) {
+    input.value = ''
+    return
+  }
+
+  try {
+    const urls = await Promise.all(files.map((file) => readFileAsDataUrl(file)))
+    const merged = [...normalizePhotos(form.photosText), ...urls]
+    form.photosText = [...new Set(merged.filter(Boolean))].join('\n')
+  } catch (error) {
+    console.error(error)
+  } finally {
+    input.value = ''
+  }
+}
 
 function resetForm() {
   const initial = props.initial ?? {}
@@ -152,7 +232,7 @@ function onCancel() {
   emit('cancel')
 }
 
- defineExpose({ reset: resetForm })
+defineExpose({ reset: resetForm })
 </script>
 
 <style scoped>
@@ -164,9 +244,16 @@ label { font-size:.8rem; color:#41526b; font-weight:600; }
 input,select,textarea { width:100%; border:1px solid #dfe7f3; border-radius:10px; padding:10px 12px; background:white; color:#1f2937; font:inherit; box-sizing:border-box; }
 textarea { resize:vertical; min-height:92px; }
 small { color:#64748b; font-size:.75rem; }
+.photo-tools { display:flex; align-items:center; gap:10px; }
+.hidden-file-input { display:none; }
+.photo-preview-list { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+.photo-preview-item { position:relative; width:72px; height:60px; overflow:hidden; border-radius:8px; border:1px solid #dfe7f3; background:#f8fafc; }
+.photo-preview-item img { display:block; width:100%; height:100%; object-fit:cover; }
+.mini-btn { position:absolute; right:4px; top:4px; border:0; border-radius:999px; background:rgba(15, 23, 42, 0.7); color:#fff; font-size:.65rem; padding:3px 6px; cursor:pointer; }
 .actions-row { display:flex; gap:10px; }
 button { border:1px solid transparent; border-radius:10px; padding:9px 12px; background:#edf3ff; color:#1e293b; cursor:pointer; font-weight:600; }
 button.primary { background:#2563eb; color:white; }
 button.ghost { background:#f8fafc; border-color:#d8e1ef; }
+button.small { padding:7px 10px; font-size:.8rem; }
 @media (max-width:520px) { .field-grid { grid-template-columns:1fr; } .field.wide { grid-column:auto; } }
 </style>
