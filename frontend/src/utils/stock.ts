@@ -14,6 +14,7 @@ export interface InventoryItem {
   make?: string | null
   model?: string | null
   notes?: string
+  photos?: string[] | null
 }
 
 export function getStockStatus(quantity: number, minQuantity = 0): StockStatus {

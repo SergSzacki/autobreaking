@@ -82,6 +82,7 @@
         <thead>
           <tr>
             <th>Name</th>
+            <th>Photo</th>
             <th>SKU</th>
             <th>Category</th>
             <th>Qty</th>
@@ -98,6 +99,7 @@
         <tbody>
           <tr v-for="item in filteredInventory" :key="item.id">
             <td>{{ item.name }}</td>
+            <td><PartPhotos :photos="item.photos" :label="`${item.name} photos`" /></td>
             <td>{{ item.sku || '-' }}</td>
             <td>{{ item.category || '-' }}</td>
             <td>{{ item.quantity ?? 0 }}</td>
@@ -128,6 +130,7 @@ import { getStockLabel, getStockStatus, type InventoryItem } from '@/utils/stock
 import { listInventory, createPart, updatePart, deletePart } from '@/api/parts'
 import { listCars } from '@/api/cars'
 import PartForm from '@/components/PartForm.vue'
+import PartPhotos from '@/components/PartPhotos.vue'
 import type { Car } from '@/types/car'
 import type { Part, PartDraft } from '@/types/part'
 
@@ -192,6 +195,7 @@ function editItem(item: InventoryItem) {
     supplier: item.supplier,
     location: item.location,
     notes: item.notes,
+    photos: item.photos,
     car_id: item.car_id,
     make: item.make,
     model: item.model,
