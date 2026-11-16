@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
@@ -45,6 +46,7 @@ class PartBase(SQLModel):
     supplier: Optional[str] = None
     location: Optional[str] = None
     notes: Optional[str] = None
+    photos: list[str] = Field(default_factory=list, sa_type=JSONB)
     car_id: Optional[int] = Field(default=None, foreign_key="car.id")
 
 
@@ -70,4 +72,5 @@ class PartUpdate(SQLModel):
     supplier: Optional[str] = None
     location: Optional[str] = None
     notes: Optional[str] = None
+    photos: Optional[list[str]] = None
     car_id: Optional[int] = None

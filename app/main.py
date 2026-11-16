@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict
 
-from fastapi import FastAPI, HTTPException, Depends, Query, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
@@ -122,9 +122,7 @@ def list_car_parts(car_id: int, session: Session = Depends(get_session)):
 
 
 @app.get("/api/inventory")
-def list_inventory(db: Session = 
-Depends(get_session)):
-
+def list_inventory(db: Session = Depends(get_session)):
     parts = db.query(Part).all()
     result = []
 
@@ -148,6 +146,7 @@ Depends(get_session)):
             "make": getattr(part, "make", None),
             "model": getattr(part, "model", None),
             "car_id": getattr(part, "car_id", None),
+            "photos": getattr(part, "photos", None) or [],
         })
 
     return result
