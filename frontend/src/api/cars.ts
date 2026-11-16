@@ -2,7 +2,7 @@ import api from './axios'
 import type { Car, CarDraft } from '../types/car'
 
 export const listCars = async () => {
-  const response = await api.get('/cars')
+  const response = await api.get('/cars', { params: { per_page: 200 } })
   if (response.data && Array.isArray(response.data)) return response.data as Car[]
   if (response.data && Array.isArray(response.data.cars)) return response.data.cars as Car[]
   return [] as Car[]

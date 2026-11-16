@@ -1,13 +1,20 @@
+"""initial car table
+
+Revision ID: 0001_initial
+Revises: f04b45fbad5e
+"""
 from alembic import op
 import sqlalchemy as sa
 
 revision = '0001_initial'
-down_revision = None
+down_revision = 'f04b45fbad5e'
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
+    if sa.inspect(op.get_bind()).has_table("car"):
+        return
     op.create_table(
         "car",
         sa.Column("id", sa.Integer(), primary_key=True),
