@@ -21,7 +21,7 @@
     </div>
     <div>
       <label>Year</label>
-      <input v-model.number="form.year" type="number" min="1900" max="2100" required />
+      <input v-model.number="form.year" type="number" min="1886" max="2200" required />
     </div>
     <div>
       <label>VIN</label>

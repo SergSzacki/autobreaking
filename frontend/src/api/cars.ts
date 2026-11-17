@@ -1,11 +1,17 @@
 import api from './axios'
 import type { Car, CarDraft } from '../types/car'
 
+const CARS_PAGE_SIZE = 200
+
 export const listCars = async () => {
-  const response = await api.get('/cars')
-  if (response.data && Array.isArray(response.data)) return response.data as Car[]
-  if (response.data && Array.isArray(response.data.cars)) return response.data.cars as Car[]
-  return [] as Car[]
+  const cars: Car[] = []
+  for (let page = 1; ; page += 1) {
+    const response = await api.get('/cars', { params: { page, per_page: CARS_PAGE_SIZE } })
+    const batch = (response.data?.cars ?? []) as Car[]
+    cars.push(...batch)
+    const total = Number(response.data?.meta?.total ?? cars.length)
+    if (batch.length < CARS_PAGE_SIZE || cars.length >= total) return cars
+  }
 }
 
 export const getCarById = async (id: number) => {

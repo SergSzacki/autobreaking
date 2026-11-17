@@ -48,7 +48,7 @@
             <button class="ghost" @click="openCarDetails(car.id)">Details</button>
             <button class="ghost" @click="startEditCar(car)">Edit</button>
             <button class="ghost danger" @click="confirmDeleteCar(car.id)">Delete</button>
-            <button class="ghost" @click="toggleParts(car.id)">{{ expandedCarId === car.id ? 'Hide parts' : `Parts (${(partsByCar[car.id] || []).length})` }}</button>
+            <button class="ghost" @click="toggleParts(car.id)">{{ expandedCarId === car.id ? 'Hide parts' : `Parts (${(car.id ? partsByCar[car.id] || [] : []).length})` }}</button>
           </div>
         </div>
 

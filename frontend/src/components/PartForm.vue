@@ -58,6 +58,11 @@
       </div>
 
       <div class="field wide">
+        <label for="part-description">Description</label>
+        <textarea id="part-description" v-model="form.description" rows="3" />
+      </div>
+
+      <div class="field wide">
         <label>Photos</label>
 
         <div class="photo-tools">

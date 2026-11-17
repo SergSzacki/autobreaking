@@ -17,7 +17,7 @@
       <div class="form-field select-field">
         <label for="stock-car-select">Car</label>
         <select id="stock-car-select" v-model="selectedCarId" class="filter-select">
-          <option :value="null" disabled>Select a car</option>
+          <option :value="null">No car</option>
           <option v-for="car in carOptions" :key="car.id" :value="car.id">
             {{ car.make }} {{ car.model }} ({{ car.year }})
           </option>
@@ -26,7 +26,7 @@
 
       <PartForm
         :key="formKey"
-        :initial="editingItem"
+        :initial="editingItem ?? undefined"
         :car-id="selectedCarId"
         @saved="handleSaved"
         @cancel="cancelForm"
@@ -127,7 +127,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { getStockLabel, getStockStatus, type InventoryItem } from '@/utils/stock'
-import { listInventory, createPart, updatePart, deletePart } from '@/api/parts'
+import { listInventory, createStandalonePart, updatePartById, deletePartById } from '@/api/parts'
 import { listCars } from '@/api/cars'
 import PartForm from '@/components/PartForm.vue'
 import PartPhotos from '@/components/PartPhotos.vue'
@@ -182,8 +182,7 @@ function cancelForm() {
 }
 
 function editItem(item: InventoryItem) {
-  const selected = item.car_id ?? selectedCarId.value ?? carOptions.value[0]?.id ?? null
-  selectedCarId.value = selected
+  selectedCarId.value = item.car_id ?? null
   editingItem.value = {
     id: item.id,
     name: item.name,
@@ -205,17 +204,13 @@ function editItem(item: InventoryItem) {
 }
 
 async function handleSaved(payload: { id?: number; data: PartDraft }) {
-  const carId = selectedCarId.value
-  if (!carId) {
-    alert('Please select a car before saving the stock item.')
-    return
-  }
+  const data = { ...payload.data, car_id: selectedCarId.value }
 
   try {
     if (payload.id) {
-      await updatePart(carId, payload.id, payload.data)
+      await updatePartById(payload.id, data)
     } else {
-      await createPart(carId, payload.data)
+      await createStandalonePart(data)
     }
 
     showForm.value = false
@@ -230,16 +225,12 @@ async function handleSaved(payload: { id?: number; data: PartDraft }) {
 
 async function deleteItem(item: InventoryItem) {
   if (!item.id) return
-  if (!item.car_id) {
-    alert('This stock item has no associated car, so it cannot be deleted from the inventory API.')
-    return
-  }
 
   const confirmed = window.confirm(`Delete '${item.name}' from inventory?`)
   if (!confirmed) return
 
   try {
-    await deletePart(item.car_id, item.id)
+    await deletePartById(item.id)
     await loadInventory()
   } catch (err) {
     console.error(err)
@@ -252,8 +243,10 @@ onMounted(() => {
   loadInventory()
 })
 
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 watch(search, () => {
-  loadInventory()
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(loadInventory, 300)
 })
 
 const filteredInventory = computed(() => {

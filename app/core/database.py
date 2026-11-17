@@ -1,45 +1,35 @@
-from collections.abc import AsyncGenerator
+from collections.abc import Generator
 
-from sqlalchemy import text
-
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy import event, text
+from sqlmodel import Session, create_engine
 
 from app.core.config import settings
 
 
-engine = create_async_engine(
+connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+
+engine = create_engine(
     settings.database_url,
     echo=False,
     pool_pre_ping=True,
+    connect_args=connect_args,
 )
 
-AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+if engine.dialect.name == "sqlite":
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _record):
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
 
 
-async def get_db() -> AsyncGenerator[
-    AsyncSession,
-    None
-]:
-    async with AsyncSessionLocal() as session:
+def get_session() -> Generator[Session, None, None]:
+    with Session(engine) as session:
         yield session
 
 
-async def check_connection() -> bool:
+def check_connection() -> bool:
     try:
-        async with AsyncSessionLocal() as session:
-            await session.execute(
-                text("SELECT 1")
-            )
-
+        with Session(engine) as session:
+            session.exec(text("SELECT 1"))
         return True
-
     except Exception:
         return False
