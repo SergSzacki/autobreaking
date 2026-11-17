@@ -1,3 +1,8 @@
+param(
+    # Fetch and rebase the current branch before launching (off by default).
+    [switch]$GitSync
+)
+
 $ErrorActionPreference = "Stop"
 
 $projectRoot = $PSScriptRoot
@@ -31,8 +36,8 @@ function Stop-ProcessByPort($port) {
     foreach ($procId in $pids) {
         try {
             $proc = Get-Process -Id $procId -ErrorAction Stop
-            Write-Warn "Stopping process on port ${port}: $($proc.ProcessName) (PID $pid)"
-            Stop-Process -Id $pid -Force
+            Write-Warn "Stopping process on port ${port}: $($proc.ProcessName) (PID $procId)"
+            Stop-Process -Id $procId -Force
         } catch {
             Write-Warn "Could not stop process on port ${port}: $($_.Exception.Message)"
         }
@@ -59,19 +64,16 @@ if (-not (Test-Command "python")) { Write-ErrorAndExit "Python not found." }
 if (-not (Test-Command "node")) { Write-ErrorAndExit "Node.js not found." }
 if (-not (Test-Command "npm")) { Write-ErrorAndExit "npm not found." }
 
-# optional git sync
-if (Test-Path (Join-Path $projectRoot ".git")) {
-    Write-Info "Syncing repository..."
-    try {
+# optional git sync (only with -GitSync, never switches branches)
+if ($GitSync) {
+    if (Test-Path (Join-Path $projectRoot ".git")) {
+        Write-Info "Syncing current branch..."
         Set-Location $projectRoot
-        git fetch origin
-        git checkout feature/cars-api 2>$null
-        git pull --rebase origin feature/cars-api 2>$null
-    } catch {
-        Write-Warn "Could not sync Git automatically. Continuing..."
+        git pull --rebase --autostash
+        if ($LASTEXITCODE -ne 0) { Write-Warn "Could not sync Git automatically. Continuing..." }
+    } else {
+        Write-Warn "No .git folder found. Skipping Git sync."
     }
-} else {
-    Write-Warn "No .git folder found. Skipping Git sync."
 }
 
 Stop-ProcessByPort 8000
@@ -99,8 +101,21 @@ if (Test-Path $requirementsFile) {
 } else {
     Write-Info "Installing default backend packages..."
     pip install --upgrade pip
-    pip install fastapi uvicorn sqlmodel sqlalchemy
+    pip install fastapi uvicorn sqlmodel sqlalchemy alembic psycopg2-binary pydantic-settings
 }
+
+# .env
+$envFile = Join-Path $projectRoot ".env"
+if (-not (Test-Path $envFile)) {
+    Write-Warn ".env not found, copying .env.example. Review the values (SECRET_KEY, POSTGRES_*)."
+    Copy-Item (Join-Path $projectRoot ".env.example") $envFile
+}
+
+# database migrations
+Write-Info "Applying database migrations..."
+Set-Location $projectRoot
+alembic upgrade head
+if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit "Database migration failed. Check that PostgreSQL is running and .env is correct." }
 
 # frontend deps
 if (-not (Test-Path (Join-Path $frontendRoot "node_modules"))) {
@@ -115,7 +130,7 @@ if (-not (Test-Path (Join-Path $frontendRoot "node_modules"))) {
 $backendCommand = @"
 Set-Location '$projectRoot'
 . '$activateScript'
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 2>&1 | Tee-Object -FilePath '$backendLog'
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 2>&1 | Tee-Object -FilePath '$backendLog'
 "@
 
 Start-Process powershell -ArgumentList '-NoExit', '-Command', $backendCommand
@@ -123,7 +138,7 @@ Start-Process powershell -ArgumentList '-NoExit', '-Command', $backendCommand
 # start frontend
 $frontendCommand = @"
 Set-Location '$frontendRoot'
-npm run dev -- --host 0.0.0.0 2>&1 | Tee-Object -FilePath '$frontendLog'
+npm run dev 2>&1 | Tee-Object -FilePath '$frontendLog'
 "@
 
 Start-Process powershell -ArgumentList '-NoExit', '-Command', $frontendCommand

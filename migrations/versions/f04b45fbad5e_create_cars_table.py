@@ -1,14 +1,14 @@
-"""create cars table
+"""create cars table (superseded)
 
 Revision ID: f04b45fbad5e
 Revises: 0783f4c01ab1
 Create Date: 2026-10-16 08:22:37.910018
 
+Previously created an unused ``cars`` table that did not match the ``car``
+model. Kept as a no-op so databases already stamped with this revision can
+still be upgraded.
 """
 from typing import Sequence, Union
-
-from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -19,16 +19,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        'cars',
-        sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('make', sa.String(length=50), nullable=False),
-        sa.Column('model', sa.String(length=50), nullable=False),
-        sa.Column('year', sa.Integer, nullable=False),
-        sa.Column('price', sa.Numeric(10, 2), nullable=False),
-        sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime, onupdate=sa.func.now())
-    )
+    pass
+
 
 def downgrade() -> None:
-    op.drop_table('cars')
+    pass

@@ -29,3 +29,17 @@ export const updatePart = async (carId: number, partId: number, payload: Partial
 export const deletePart = async (carId: number, partId: number) => {
   await api.delete(`/cars/${carId}/parts/${partId}`)
 }
+
+export const createStandalonePart = async (payload: PartDraft) => {
+  const response = await api.post('/parts', payload)
+  return response.data as Part
+}
+
+export const updatePartById = async (partId: number, payload: Partial<PartDraft>) => {
+  const response = await api.patch(`/parts/${partId}`, payload)
+  return response.data as Part
+}
+
+export const deletePartById = async (partId: number) => {
+  await api.delete(`/parts/${partId}`)
+}
