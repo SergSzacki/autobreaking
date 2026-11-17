@@ -1,4 +1,4 @@
-form datetime import datetime
+from datetime import datetime
 from datetime import timedelta
 
 from jose import JWTError
@@ -33,7 +33,7 @@ def create_access_token(
         "sub": str(user_id),
         "login": login,
         "role": role,
-        "exp": datetime.datetime.now() + timedelta(hours=8)
+        "exp": datetime.now() + timedelta(hours=8)
     }
     return jwt.encode(
         payload,
