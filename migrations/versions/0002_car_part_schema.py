@@ -54,9 +54,14 @@ def _part_columns():
 
 def _add_missing_columns(inspector, table, columns):
     existing = {column["name"] for column in inspector.get_columns(table)}
-    for column in columns:
-        if column.name not in existing and column.name != "car_id":
-            op.add_column(table, column)
+    missing = [column for column in columns if column.name not in existing and column.name != "car_id"]
+    if not missing:
+        return
+    # SQLite cannot ADD COLUMN with a non-constant default (CURRENT_TIMESTAMP), so rebuild the table there.
+    recreate = "always" if op.get_bind().dialect.name == "sqlite" else "auto"
+    with op.batch_alter_table(table, recreate=recreate) as batch:
+        for column in missing:
+            batch.add_column(column)
 
 
 def _create_index_if_missing(inspector, name, table, columns, **kwargs):
@@ -71,6 +76,28 @@ def _normalize_legacy_part(bind, inspector):
         batch.alter_column("description", type_=sa.Text())
         batch.alter_column("notes", type_=sa.Text())
 
+    photos = next(c for c in sa.inspect(bind).get_columns("part") if c["name"] == "photos")
+    if photos["nullable"] or not isinstance(photos["type"], (sa.JSON, JSONB)):
+        op.execute("UPDATE part SET photos = '[]' WHERE photos IS NULL OR CAST(photos AS TEXT) = ''")
+        with op.batch_alter_table("part") as batch:
+            batch.alter_column(
+                "photos",
+                existing_type=photos["type"],
+                type_=PHOTOS_TYPE,
+                nullable=False,
+                server_default=sa.text("'[]'"),
+                postgresql_using="photos::jsonb",
+            )
+
+    if bind.dialect.name == "sqlite":
+        fks = sa.inspect(bind).get_foreign_keys("part")
+        if any(fk["constrained_columns"] == ["car_id"] and fk.get("options", {}).get("ondelete") != "SET NULL" for fk in fks):
+            with op.batch_alter_table(
+                "part", recreate="always", naming_convention={"fk": "fk_%(table_name)s_%(column_0_name)s"}
+            ) as batch:
+                batch.drop_constraint("fk_part_car_id", type_="foreignkey")
+                batch.create_foreign_key("part_car_id_fkey", "car", ["car_id"], ["id"], ondelete="SET NULL")
+        return
     if bind.dialect.name != "postgresql":
         return
     for fk in inspector.get_foreign_keys("part"):

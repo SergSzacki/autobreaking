@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlmodel import Session, create_engine
 
 from app.core.config import settings
@@ -14,6 +14,11 @@ engine = create_engine(
     pool_pre_ping=True,
     connect_args=connect_args,
 )
+
+if engine.dialect.name == "sqlite":
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _record):
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
 
 
 def get_session() -> Generator[Session, None, None]:
